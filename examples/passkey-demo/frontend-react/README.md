@@ -21,9 +21,45 @@ npm install
 npm run dev
 ```
 
+The custom dev script displays cross-platform configuration info, setup reminders, and starts Vite with helpful guidance.
+
 **Access the demo at**: [http://passkey-demo.local:5173](http://passkey-demo.local:5173)
 
 ⚠️ **Important**: Use `passkey-demo.local:5173`, NOT `localhost:5173` for proper cross-platform passkey functionality.
+
+### Expected Output
+
+```bash
+$ npm run dev
+
+🌐 Cross-Platform WebAuthn Passkey Demo
+========================================
+🔐 React Frontend: http://passkey-demo.local:5173
+📡 Backend API: http://passkey-demo.local:8080
+
+⚠️  CRITICAL SETUP REQUIRED:
+   Add to /etc/hosts (requires sudo):
+   127.0.0.1 passkey-demo.local
+
+🔗 For detailed setup: See README.md
+🚀 Starting Vite development server...
+   Note: Vite shows localhost URLs, but use passkey-demo.local instead
+
+  VITE v7.0.0  ready in 128 ms
+  ➜  Local:   http://localhost:5173/  ← Ignore this
+  ➜  Network: http://10.0.0.202:5173/ ← Ignore this
+  ➜  USE THIS: http://passkey-demo.local:5173/
+```
+
+### Alternative Commands
+
+```bash
+# Start with domain configuration info (recommended)
+npm run dev
+
+# Start Vite directly (skip custom messaging)
+npm run dev:direct
+```
 
 ## 🔧 Features
 
