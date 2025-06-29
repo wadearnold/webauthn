@@ -198,8 +198,8 @@ func (app *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	for _, existingCred := range user.Credentials {
 		if string(existingCred.ID) == string(credential.ID) {
 			credentialExists = true
-			fmt.Printf("WARNING: Attempted to register duplicate credential for user %s, CredentialID: %x\n", 
-				user.Username, credential.ID)
+			fmt.Printf("WARNING: Attempted to register duplicate credential for user %s, CredentialID: %s\n", 
+				user.Username, string(credential.ID))
 			break
 		}
 	}
@@ -208,8 +208,8 @@ func (app *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	if !credentialExists {
 		user.Credentials = append(user.Credentials, *credential)
 		app.store.UpdateUser(user)
-		fmt.Printf("SUCCESS: New credential registered for user %s, CredentialID: %x\n", 
-			user.Username, credential.ID)
+		fmt.Printf("SUCCESS: New credential registered for user %s, CredentialID: %s\n", 
+			user.Username, string(credential.ID))
 	}
 
 	// Set user session cookie (so user is logged in after registration)
@@ -363,8 +363,8 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !credentialExists {
-			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %x\n",
-				user.Username, credential.ID)
+			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %s\n",
+				user.Username, string(credential.ID))
 			app.writeError(w, "Authentication failed: credential no longer valid", http.StatusUnauthorized)
 			return
 		}
@@ -420,8 +420,8 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !credentialExists {
-			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %x\n",
-				appUser.Username, credential.ID)
+			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %s\n",
+				appUser.Username, string(credential.ID))
 			app.writeError(w, "Authentication failed: credential no longer valid", http.StatusUnauthorized)
 			return
 		}
@@ -472,21 +472,24 @@ func (app *App) handleDeletePasskey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract credential ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/user/passkeys/")
-	if path == "" {
+	// Extract credential ID from URL path (base64-encoded)
+	credentialIDStr := strings.TrimPrefix(r.URL.Path, "/api/user/passkeys/")
+	if credentialIDStr == "" {
 		app.writeError(w, "Credential ID required", http.StatusBadRequest)
 		return
 	}
 
-	credentialID := []byte(path)
+	// The credential ID comes as a base64-encoded string in the URL
+	// We need to use it directly as string for our storage layer
+	credentialID := []byte(credentialIDStr)
 	err := app.store.DeleteUserPasskey(username, credentialID)
 	if err != nil {
 		app.writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Printf("SECURITY: Passkey deleted for user %s, CredentialID: %x\n", username, credentialID)
+	// Log with readable credential ID (the base64 string)
+	fmt.Printf("SECURITY: Passkey deleted for user %s, CredentialID: %s\n", username, credentialIDStr)
 	app.writeSuccess(w, "Passkey deleted successfully", nil)
 }
 
