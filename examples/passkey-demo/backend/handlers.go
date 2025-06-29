@@ -112,20 +112,40 @@ func (app *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Begin registration with discoverable credentials
+	// Begin registration with best practice passkey configuration
+	// Force platform authenticators and resident keys for true passkey experience
 	options, sessionData, err := app.webAuthn.BeginRegistration(
 		user,
+		// Required for passkeys: must be stored on device
 		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
+		// Best practice: platform authenticators with user verification
 		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
-			AuthenticatorAttachment: protocol.Platform,              // Prefer platform authenticators (built-in biometrics)
-			UserVerification:        protocol.VerificationPreferred, // Prefer biometrics but allow PIN
-			ResidentKey:             protocol.ResidentKeyRequirementRequired,
+			// Force platform authenticators (built-in biometrics)
+			AuthenticatorAttachment: protocol.Platform,
+			// Required for passkeys
+			ResidentKey: protocol.ResidentKeyRequirementRequired,
+			RequireResidentKey: protocol.ResidentKeyRequired(),
+			// Require user verification for security
+			UserVerification: protocol.VerificationRequired,
 		}),
 	)
 	if err != nil {
 		app.writeError(w, fmt.Sprintf("Failed to begin registration: %v", err), http.StatusInternalServerError)
 		return
 	}
+
+	// Comprehensive registration debugging
+	fmt.Printf("=== REGISTRATION DEBUG INFO FOR %s ===\n", user.Username)
+	fmt.Printf("AuthenticatorAttachment: %s\n", options.Response.AuthenticatorSelection.AuthenticatorAttachment)
+	fmt.Printf("ResidentKey: %s\n", options.Response.AuthenticatorSelection.ResidentKey)
+	fmt.Printf("RequireResidentKey: %t\n", *options.Response.AuthenticatorSelection.RequireResidentKey)
+	fmt.Printf("UserVerification: %s\n", options.Response.AuthenticatorSelection.UserVerification)
+	fmt.Printf("Attestation: %s\n", options.Response.Attestation)
+	fmt.Printf("Timeout: %d ms\n", options.Response.Timeout)
+	fmt.Printf("RPID: %s\n", options.Response.RelyingParty.ID)
+	fmt.Printf("RPName: %s\n", options.Response.RelyingParty.Name)
+	fmt.Printf("Challenge: %s\n", options.Response.Challenge)
+	fmt.Printf("=========================================\n")
 
 	// Store session
 	sessionID := uuid.New().String()
@@ -229,7 +249,24 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		options, sessionData, err := app.webAuthn.BeginLogin(user)
+		// Traditional login with username - use best practices
+		options, sessionData, err := app.webAuthn.BeginLogin(
+			user,
+			// Request user verification for security
+			webauthn.WithUserVerification(protocol.VerificationRequired),
+		)
+		
+		if err == nil {
+			fmt.Printf("=== TRADITIONAL LOGIN DEBUG INFO FOR %s ===\n", user.Username)
+			fmt.Printf("UserVerification: %s\n", options.Response.UserVerification)
+			fmt.Printf("Timeout: %d ms\n", options.Response.Timeout)
+			fmt.Printf("RPID: %s\n", options.Response.RelyingPartyID)
+			fmt.Printf("AllowCredentials count: %d\n", len(options.Response.AllowedCredentials))
+			for i, cred := range options.Response.AllowedCredentials {
+				fmt.Printf("  Credential %d: ID=%x, Type=%s\n", i+1, cred.CredentialID, cred.Type)
+			}
+			fmt.Printf("============================================\n")
+		}
 		if err != nil {
 			app.writeError(w, fmt.Sprintf("Failed to begin login: %v", err), http.StatusInternalServerError)
 			return
@@ -251,10 +288,21 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 
 		json.NewEncoder(w).Encode(options)
 	} else {
-		// Discoverable login (passwordless)
+		// Discoverable login (passwordless) with best practices
 		options, sessionData, err := app.webAuthn.BeginDiscoverableLogin(
-			webauthn.WithUserVerification(protocol.VerificationPreferred),
+			// Require user verification for security
+			webauthn.WithUserVerification(protocol.VerificationRequired),
 		)
+		
+		if err == nil {
+			fmt.Printf("=== DISCOVERABLE LOGIN DEBUG INFO ===\n")
+			fmt.Printf("UserVerification: %s\n", options.Response.UserVerification)
+			fmt.Printf("Timeout: %d ms\n", options.Response.Timeout)
+			fmt.Printf("RPID: %s\n", options.Response.RelyingPartyID)
+			fmt.Printf("Challenge: %s\n", options.Response.Challenge)
+			fmt.Printf("AllowCredentials count: %d\n", len(options.Response.AllowedCredentials))
+			fmt.Printf("=====================================\n")
+		}
 		if err != nil {
 			app.writeError(w, fmt.Sprintf("Failed to begin discoverable login: %v", err), http.StatusInternalServerError)
 			return

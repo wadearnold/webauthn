@@ -12,12 +12,20 @@ import (
 
 func main() {
 	// Initialize WebAuthn
+	// Best practice WebAuthn configuration for passkeys with biometric support
 	config := &webauthn.Config{
 		RPDisplayName: "WebAuthn Passkey Demo",
 		RPID:          "localhost",
 		RPOrigins:     []string{"http://localhost:5173"}, // React dev server
 		AttestationPreference: protocol.PreferNoAttestation,
+		// Default authenticator selection - will be overridden per-request
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			// Platform authenticators (built-in biometrics) preferred but not required
+			AuthenticatorAttachment: protocol.Platform,
+			// Require resident keys for discoverable credentials (passkeys)
+			ResidentKey: protocol.ResidentKeyRequirementPreferred,
+			RequireResidentKey: protocol.ResidentKeyNotRequired(),
+			// User verification preferred to allow fallback if biometrics unavailable
 			UserVerification: protocol.VerificationPreferred,
 		},
 		Timeouts: webauthn.TimeoutsConfig{
