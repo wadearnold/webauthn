@@ -10,9 +10,8 @@ class APIService: ObservableObject {
     
     private let baseURL: String = {
         #if targetEnvironment(simulator)
-        // iOS Simulator workaround: Use HTTP localhost to avoid certificate mismatch
-        // Backend still uses passkey-demo.local RPID for cross-platform compatibility
-        return "http://localhost:8080/api"
+        // iOS Simulator: Use HTTPS localhost with custom session to ignore cert issues
+        return "https://localhost:8080/api"
         #else
         // Physical device: Use the proper HTTPS domain
         return "https://passkey-demo.local:8080/api"
@@ -25,7 +24,18 @@ class APIService: ObservableObject {
         let config = URLSessionConfiguration.default
         config.httpCookieAcceptPolicy = .always
         config.httpShouldSetCookies = true
+        
+        #if targetEnvironment(simulator)
+        // For iOS Simulator: Create session that ignores certificate validation for localhost
+        self.session = URLSession(
+            configuration: config,
+            delegate: LocalhostCertificateDelegate(),
+            delegateQueue: nil
+        )
+        #else
+        // For physical devices: Use standard session
         self.session = URLSession(configuration: config)
+        #endif
     }
     
     // MARK: - Generic Request Method
@@ -185,3 +195,28 @@ extension String {
         return Data(base64Encoded: base64)
     }
 }
+
+// MARK: - Development Certificate Delegate
+
+#if targetEnvironment(simulator)
+class LocalhostCertificateDelegate: NSObject, URLSessionDelegate {
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        // Only bypass certificate validation for localhost in simulator
+        if challenge.protectionSpace.host == "localhost" {
+            // Accept the server certificate for localhost in development
+            if let serverTrust = challenge.protectionSpace.serverTrust {
+                let credential = URLCredential(trust: serverTrust)
+                completionHandler(.useCredential, credential)
+                return
+            }
+        }
+        
+        // For all other hosts, use default handling
+        completionHandler(.performDefaultHandling, nil)
+    }
+}
+#endif
