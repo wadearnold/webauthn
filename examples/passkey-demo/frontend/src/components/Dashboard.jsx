@@ -254,6 +254,10 @@ export default function Dashboard({ user, onLogout }) {
           <li>Try creating additional passkeys by registering again</li>
           <li>Test the username-based sign in flow</li>
           <li>Delete passkeys and see them removed from the list</li>
+          <li>
+            <strong>Test Deep Link Authentication:</strong> Copy your profile URL, sign out, 
+            then paste it in a new tab to see authentication redirect
+          </li>
         </ul>
       </div>
     </div>

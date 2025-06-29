@@ -69,3 +69,33 @@ export const logout = async () => {
     method: 'POST',
   });
 };
+
+// Protected profile API
+export const getUserProfile = async (username) => {
+  try {
+    const response = await fetch(`${API_BASE}/user/${username}/profile`, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 401) {
+      const data = await response.json();
+      // Throw special error for authentication required
+      const error = new Error(data.error);
+      error.code = data.code;
+      error.redirectUrl = data.redirectUrl;
+      throw error;
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch profile');
+    }
+
+    return response.json();
+  } catch (error) {
+    throw error;
+  }
+};
