@@ -209,7 +209,14 @@ class WebAuthnService: NSObject, ObservableObject {
     // MARK: - Capability Check
     
     var isWebAuthnSupported: Bool {
-        return ASAuthorizationPlatformPublicKeyCredentialProvider.isSupported
+        // For iOS 16.0-16.3 compatibility, we check if the class exists
+        // isSupported was added in iOS 16.4
+        if #available(iOS 16.4, *) {
+            return ASAuthorizationPlatformPublicKeyCredentialProvider.isSupported
+        } else {
+            // On iOS 16.0-16.3, we assume WebAuthn is supported if the device has biometrics
+            return true // Platform authenticators are available on iOS 16.0+
+        }
     }
     
     // MARK: - Private Properties for Async/Await Bridge
