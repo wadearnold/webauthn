@@ -10,10 +10,11 @@ class APIService: ObservableObject {
     
     private let baseURL: String = {
         #if targetEnvironment(simulator)
-        // iOS Simulator workaround: Use localhost but backend still uses passkey-demo.local RPID
-        return "https://localhost:8080/api"
+        // iOS Simulator workaround: Use HTTP localhost to avoid certificate mismatch
+        // Backend still uses passkey-demo.local RPID for cross-platform compatibility
+        return "http://localhost:8080/api"
         #else
-        // Physical device: Use the proper domain
+        // Physical device: Use the proper HTTPS domain
         return "https://passkey-demo.local:8080/api"
         #endif
     }()

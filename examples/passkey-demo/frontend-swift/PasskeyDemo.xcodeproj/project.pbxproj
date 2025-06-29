@@ -31,6 +31,7 @@
 		A10A1A3D2C8F8B4600123456 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
 		A10A1A3F2C8F8B5400123456 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		A10A1A412C8F8B6200123456 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		A10A1A432C8F8B7000123456 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,11 +64,12 @@
 		A10A1A282C8F8A8B00123456 /* PasskeyDemo */ = {
 			isa = PBXGroup;
 			children = (
-				A10A1A432C8F8B7000123456 /* Views */,
-				A10A1A442C8F8B7800123456 /* Services */,
-				A10A1A452C8F8B8000123456 /* Models */,
+				A10A1A462C8F8B7000123456 /* Views */,
+				A10A1A472C8F8B7800123456 /* Services */,
+				A10A1A482C8F8B8000123456 /* Models */,
 				A10A1A292C8F8A8B00123456 /* PasskeyDemoApp.swift */,
 				A10A1A2B2C8F8A8B00123456 /* ContentView.swift */,
+				A10A1A432C8F8B7000123456 /* Info.plist */,
 				A10A1A2D2C8F8A8D00123456 /* Assets.xcassets */,
 				A10A1A2F2C8F8A8D00123456 /* Preview Content */,
 			);
@@ -82,7 +84,7 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
-		A10A1A432C8F8B7000123456 /* Views */ = {
+		A10A1A462C8F8B7000123456 /* Views */ = {
 			isa = PBXGroup;
 			children = (
 				A10A1A3D2C8F8B4600123456 /* RegistrationView.swift */,
@@ -92,7 +94,7 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		A10A1A442C8F8B7800123456 /* Services */ = {
+		A10A1A472C8F8B7800123456 /* Services */ = {
 			isa = PBXGroup;
 			children = (
 				A10A1A372C8F8B1C00123456 /* WebAuthnService.swift */,
@@ -101,7 +103,7 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		A10A1A452C8F8B8000123456 /* Models */ = {
+		A10A1A482C8F8B8000123456 /* Models */ = {
 			isa = PBXGroup;
 			children = (
 				A10A1A3B2C8F8B3800123456 /* WebAuthnModels.swift */,
@@ -322,7 +324,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"PasskeyDemo/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PasskeyDemo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -351,7 +353,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"PasskeyDemo/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PasskeyDemo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
