@@ -3,9 +3,16 @@ import Foundation
 class APIService: ObservableObject {
     static let shared = APIService()
     
-    // Auto-detect protocol based on current environment
-    // In production, you might determine this differently
-    private let baseURL = "https://passkey-demo.local:8080/api"
+    // Configuration for different environments
+    #if targetEnvironment(simulator)
+    // For iOS Simulator, use localhost (inherits Mac's hosts file)
+    private let baseURL = "https://localhost:8080/api"
+    #else
+    // For physical devices, you'll need to use your Mac's IP address
+    // Replace with your actual IP address when testing on device
+    // To find your IP: ifconfig | grep "inet " | grep -v 127.0.0.1
+    private let baseURL = "https://192.168.1.100:8080/api" // TODO: Replace with your Mac's IP
+    #endif
     
     private let session: URLSession
     

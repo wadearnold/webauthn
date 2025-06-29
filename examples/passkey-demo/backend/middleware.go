@@ -18,6 +18,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 			"https://localhost:5173",          // Localhost (HTTPS)
 			"https://localhost:3000",          // Alternative localhost port (HTTPS)
 			"https://localhost:8080",          // Backend API localhost access (HTTPS)
+			// iOS Simulator/Device access (add your Mac's IP here)
+			"https://192.168.1.100:8080",     // Example IP - replace with your Mac's IP
+			"http://192.168.1.100:8080",      // HTTP fallback for IP access
 			// HTTP origins (fallback for development)
 			"http://passkey-demo.local:5173",  // React frontend (HTTP)
 			"http://passkey-demo.local:3000",  // Alternative React port (HTTP)
