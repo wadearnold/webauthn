@@ -33,11 +33,34 @@ export default function Dashboard({ user, onLogout }) {
       return;
     }
 
+    // Optimistically remove from UI first
+    const originalPasskeys = [...passkeys];
+    setPasskeys(passkeys.filter(pk => pk.id !== credentialId));
+    setError(null);
+
     try {
-      await api.deletePasskey(credentialId);
-      await loadPasskeys(); // Reload the list
+      // Encode the credential ID for URL safety
+      const encodedCredentialId = encodeURIComponent(credentialId);
+      await api.deletePasskey(encodedCredentialId);
+      
+      // Success - the optimistic update already happened
+      console.log(`Successfully deleted passkey: ${passkeyName}`);
+      
     } catch (err) {
-      setError(err.message);
+      // Revert the optimistic update on error
+      setPasskeys(originalPasskeys);
+      console.error('Failed to delete passkey:', err);
+      
+      // Show user-friendly error message
+      if (err.message.includes('Not authenticated')) {
+        setError('Session expired. Please sign in again to manage passkeys.');
+      } else if (err.message.includes('not found')) {
+        setError('Passkey not found. It may have already been deleted.');
+        // Don't revert in this case - it's already gone
+        setPasskeys(passkeys.filter(pk => pk.id !== credentialId));
+      } else {
+        setError(`Failed to delete passkey: ${err.message}`);
+      }
     }
   };
 
@@ -108,9 +131,18 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       ) : passkeys.length === 0 ? (
         <div className="demo-note">
-          <strong>No passkeys found</strong>
-          <p>This shouldn't happen since you just signed in with a passkey. 
-          Try refreshing the page or contact support.</p>
+          <strong>🔑 No passkeys registered</strong>
+          <p>You don't have any passkeys associated with this account yet.</p>
+          <p style={{ marginTop: '0.5rem' }}>
+            <strong>For demo purposes:</strong> Since you're already signed in, you likely have passkeys 
+            in your device keychain. Try signing out and signing back in with the "Sign in with Passkey" 
+            button to re-register, or create a new account with a different username.
+          </p>
+          <div style={{ marginTop: '1rem' }}>
+            <button onClick={handleLogout} className="btn btn-primary">
+              Sign Out and Try Again
+            </button>
+          </div>
         </div>
       ) : (
         <div className="passkey-list">
