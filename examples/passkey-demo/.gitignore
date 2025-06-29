@@ -43,3 +43,13 @@ Thumbs.db
 certs/
 *.pem
 *.key
+
+# Xcode (iOS Development)
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
