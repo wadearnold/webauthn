@@ -1,258 +1,175 @@
-# WebAuthn Passkey Demo - iOS Swift Frontend
+# WebAuthn Passkey Demo - iOS (Swift)
 
-A native iOS Swift app demonstrating WebAuthn passkey authentication that works seamlessly with the shared keychain across Apple devices.
+A native iOS implementation of the WebAuthn passkey demo using SwiftUI and AuthenticationServices framework. This app demonstrates cross-platform passkey functionality with iCloud Keychain sync.
 
-## 🎯 Demo Goals
+## 🌟 Features
 
-Showcase that passkeys created on any device (web, iOS, Android) can be used to authenticate across platforms when using shared keychains (iCloud Keychain, Google Password Manager, etc.).
+- **Native iOS WebAuthn**: Uses `ASAuthorizationPlatformPublicKeyCredentialProvider` for platform authenticators
+- **iCloud Keychain Sync**: Passkeys automatically sync across all your Apple devices
+- **Face ID/Touch ID**: Native biometric authentication integrated with iOS
+- **SwiftUI Interface**: Modern, declarative UI with iOS design patterns
+- **Cross-Platform Compatible**: Same backend as web and Android implementations
+- **Comprehensive Error Handling**: User-friendly error messages and fallbacks
+- **Real-time Updates**: Live status updates and passkey management
 
-## 🛠 Implementation Plan
+## 🏗️ Architecture
 
-### Core Features to Implement
+### Core Components
 
-- **Passkey Registration**: Create new passkeys using iOS WebAuthn APIs
-- **Passwordless Authentication**: Sign in using Face ID/Touch ID
-- **Cross-Platform Sync**: Demonstrate passkeys work across devices
-- **Passkey Management**: View and delete user's passkeys
-- **Deep Link Authentication**: Handle authentication from external links
+#### 📱 **Views** (`Views/`)
+- **ContentView.swift**: Main app navigation and state management
+- **AuthenticationView.swift**: Login screen with discoverable and username-based auth
+- **RegistrationView.swift**: User registration with passkey creation
+- **DashboardView.swift**: Passkey management and user dashboard
 
-### Technical Stack
+#### 🔧 **Services** (`Services/`)
+- **WebAuthnService.swift**: Core WebAuthn logic using AuthenticationServices
+- **APIService.swift**: HTTP client for backend communication
 
-- **Language**: Swift
-- **Framework**: SwiftUI or UIKit
-- **WebAuthn**: ASAuthorizationWebBrowserPlatformPublicKeyCredential (iOS 16+)
-- **Biometrics**: Local Authentication framework
-- **Networking**: URLSession for backend communication
-- **Deployment Target**: iOS 16.0+ (required for WebAuthn)
+#### 📊 **Models** (`Models/`)
+- **WebAuthnModels.swift**: Data structures matching backend API contracts
 
-### Project Structure
+### WebAuthn Integration
 
-```
-PasskeyDemoiOS/
-├── PasskeyDemoiOS.xcodeproj
-├── PasskeyDemoiOS/
-│   ├── App/
-│   │   ├── PasskeyDemoiOSApp.swift
-│   │   └── ContentView.swift
-│   ├── Views/
-│   │   ├── RegisterView.swift
-│   │   ├── LoginView.swift
-│   │   ├── DashboardView.swift
-│   │   └── ProfileView.swift
-│   ├── Services/
-│   │   ├── WebAuthnService.swift
-│   │   ├── APIService.swift
-│   │   └── KeychainService.swift
-│   ├── Models/
-│   │   ├── User.swift
-│   │   ├── PasskeyInfo.swift
-│   │   └── APIResponse.swift
-│   └── Utils/
-│       ├── Base64URL.swift
-│       └── BiometricsHelper.swift
-├── README.md
-└── Package.swift (if using SPM)
-```
-
-### Key Implementation Components
-
-#### 1. WebAuthn Service (`WebAuthnService.swift`)
+The app integrates with iOS's native WebAuthn implementation:
 
 ```swift
-import AuthenticationServices
-import Foundation
+// Platform authenticator for biometric authentication
+let platformProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(
+    relyingPartyIdentifier: "passkey-demo.local"
+)
 
-class WebAuthnService: NSObject, ObservableObject {
-    
-    func createPasskey(challenge: Data, userID: Data, userName: String, displayName: String) async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration {
-        
-        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: "passkey-demo.local")
-        
-        let request = provider.createCredentialRegistrationRequest(
-            challenge: challenge,
-            name: userName,
-            userID: userID
-        )
-        
-        request.displayName = displayName
-        request.userVerificationPreference = .required
-        
-        let controller = ASAuthorizationController(authorizationRequests: [request])
-        controller.delegate = self
-        controller.presentationContextProvider = self
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            // Handle response in delegate methods
-        }
-    }
-    
-    func authenticateWithPasskey(challenge: Data) async throws -> ASAuthorizationPlatformPublicKeyCredentialAssertion {
-        // Implementation for authentication
-    }
-}
+// Registration request
+let registrationRequest = platformProvider.createCredentialRegistrationRequest(
+    challenge: challengeData,
+    name: username,
+    userID: userIdData
+)
+
+// Authentication request  
+let assertionRequest = platformProvider.createCredentialAssertionRequest(
+    challenge: challengeData
+)
 ```
 
-#### 2. API Service (`APIService.swift`)
+## 🚀 Setup Instructions
 
-```swift
-import Foundation
+### Prerequisites
 
-class APIService {
-    private let baseURL = "http://passkey-demo.local:8080"
-    
-    func registerBegin(username: String, displayName: String) async throws -> RegistrationOptions {
-        // Call /api/register/begin
-    }
-    
-    func registerFinish(credential: ASAuthorizationPlatformPublicKeyCredentialRegistration) async throws -> AuthResponse {
-        // Call /api/register/finish
-    }
-    
-    func loginBegin(username: String? = nil) async throws -> AuthenticationOptions {
-        // Call /api/login/begin
-    }
-    
-    func loginFinish(assertion: ASAuthorizationPlatformPublicKeyCredentialAssertion) async throws -> AuthResponse {
-        // Call /api/login/finish
-    }
-    
-    func getUserPasskeys() async throws -> [PasskeyInfo] {
-        // Call /api/user/passkeys
-    }
-    
-    func deletePasskey(credentialId: String) async throws {
-        // Call DELETE /api/user/passkeys/{id}
-    }
-}
-```
+- **Xcode 15.0+** (for iOS 16+ deployment target)
+- **iOS 16.0+** device or simulator
+- **Face ID/Touch ID** enabled device (for full functionality)
+- **Backend server** running (see `../backend/README.md`)
 
-#### 3. Dashboard View (`DashboardView.swift`)
-
-```swift
-import SwiftUI
-
-struct DashboardView: View {
-    @StateObject private var apiService = APIService()
-    @State private var passkeys: [PasskeyInfo] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                // User info header
-                // Passkey list
-                // Delete functionality
-                // Cross-platform sync status
-            }
-            .navigationTitle("Your Passkeys")
-            .task {
-                await loadPasskeys()
-            }
-        }
-    }
-}
-```
-
-### Development Steps
-
-1. **Setup Project**
-   ```bash
-   # Create new iOS project in Xcode
-   # Set deployment target to iOS 16.0+
-   # Add required capabilities and permissions
-   ```
-
-2. **Implement Core Services**
-   - WebAuthn registration and authentication
-   - API communication with backend
-   - Base64URL encoding/decoding utilities
-
-3. **Build UI Components**
-   - Registration flow with username validation
-   - Biometric authentication prompts
-   - Passkey management dashboard
-   - Error handling and loading states
-
-4. **Testing Scenarios**
-   - Create passkey on iOS → Use on web
-   - Create passkey on web → Use on iOS  
-   - Create passkey on Android → Use on iOS (via Google sync)
-   - Delete passkey and verify removal across platforms
-
-### Required iOS Capabilities
-
-```xml
-<!-- Info.plist -->
-<key>NSFaceIDUsageDescription</key>
-<string>This app uses Face ID for secure passkey authentication</string>
-
-<!-- Entitlements -->
-<key>com.apple.developer.web-browser</key>
-<true/>
-```
-
-### Cross-Platform Sync Testing
-
-The iOS app should demonstrate:
-
-1. **iCloud Keychain Sync**: Passkeys created on iOS appear on Mac/iPad
-2. **Google Password Manager**: If configured, passkeys sync with Android
-3. **WebAuthn Compatibility**: Passkeys work seamlessly with web browsers
-4. **Universal Links**: Deep link authentication from other platforms
-
-### Demo Flow
-
-1. **Registration on iOS** → Verify appears in web dashboard
-2. **Authentication on web** → Use passkey created on iOS
-3. **Cross-device testing** → Same passkey works on multiple Apple devices
-4. **Management consistency** → Delete from iOS, verify removal everywhere
-
-## 📱 Getting Started
+### 1. Open in Xcode
 
 ```bash
-# Prerequisites
-# - Xcode 15.0+
-# - iOS 16.0+ device or simulator
-# - Backend server running on localhost:8080
-
-# Steps
-1. Open Xcode
-2. Create new iOS project named "PasskeyDemoiOS"
-3. Set deployment target to iOS 16.0
-4. Implement WebAuthn integration
-5. Test on physical device (required for biometrics)
+cd examples/passkey-demo/frontend-swift
+open PasskeyDemo.xcodeproj
 ```
 
-## 🔄 Integration with Existing Demo
+### 2. Configure Development Team
 
-This iOS frontend will use the **same backend API** as the React frontend, demonstrating true cross-platform passkey compatibility.
+1. Select the **PasskeyDemo** project in the navigator
+2. Under **Signing & Capabilities**, set your **Development Team**
+3. Update **Bundle Identifier** if needed (e.g., `com.yourteam.passkey.demo`)
 
-### Backend API Endpoints (Shared)
-- `POST /api/register/begin` - Start passkey registration
-- `POST /api/register/finish` - Complete passkey registration  
-- `POST /api/login/begin` - Start authentication
-- `POST /api/login/finish` - Complete authentication
-- `GET /api/user/passkeys` - Get user's passkeys
-- `DELETE /api/user/passkeys/{id}` - Delete specific passkey
+### 3. Backend Configuration
 
-### Cross-Platform Testing Matrix
+The app is configured to connect to:
+- **HTTPS**: `https://passkey-demo.local:8080/api` (preferred)
+- **HTTP**: `http://passkey-demo.local:8080/api` (fallback)
 
-| Create Platform | Authenticate Platform | Expected Result |
-|----------------|----------------------|-----------------|
-| iOS App | React Web | ✅ Should work |
-| React Web | iOS App | ✅ Should work |
-| iOS App | Android App | ✅ Should work (via Google sync) |
-| Android App | iOS App | ✅ Should work (via Google sync) |
+Ensure your backend is running with HTTPS certificates:
 
-## 🚀 Future Enhancements
+```bash
+cd ../backend
+go run .
+```
 
-- **Universal Links**: Deep link authentication from web/other apps
-- **App Clips**: Lightweight authentication experiences
-- **Shortcuts Integration**: Siri shortcuts for quick auth
-- **Apple Watch**: Companion app for wrist-based authentication
-- **Enterprise Features**: Managed app configuration for corporate use
+### 4. Build and Run
 
----
+1. Select your target device (iOS 16+ required)
+2. Click **Build and Run** (⌘+R)
+3. Trust the developer certificate if prompted
 
-**Status**: 📋 **Implementation Planned** - Ready for development
+## 📱 Usage Guide
+
+### Registration Flow
+
+1. **Launch App**: Opens to authentication screen
+2. **Create New Passkey**: Tap to navigate to registration
+3. **Enter Username**: 3-30 characters, letters/numbers/dots/hyphens/underscores
+4. **Optional Display Name**: Your full name (optional)
+5. **Create Passkey**: Triggers Face ID/Touch ID prompt
+6. **Biometric Auth**: Complete Face ID/Touch ID authentication
+7. **Success**: Automatically navigates to dashboard
+
+### Authentication Flows
+
+#### Passwordless (Recommended)
+1. **Sign in with Passkey**: No username required
+2. **iOS Passkey Selector**: iOS shows available passkeys
+3. **Biometric Auth**: Complete Face ID/Touch ID
+4. **Dashboard Access**: Logged in successfully
+
+#### Username-based
+1. **Enter Username**: Type your registered username
+2. **Sign in with Username**: Trigger authentication
+3. **Biometric Auth**: Complete Face ID/Touch ID with specific passkey
+4. **Dashboard Access**: Logged in successfully
+
+### Passkey Management
+
+- **View All Passkeys**: See all registered passkeys with details
+- **iCloud Sync Status**: Check if passkeys are synced across devices
+- **Creation/Usage Dates**: Track when passkeys were created and last used
+- **Delete Passkeys**: Remove passkeys from server (device removal separate)
+
+## 🧪 Testing
+
+### Cross-Platform Testing
+
+1. **Register on iOS**: Create passkey on iPhone/iPad
+2. **Authenticate on Web**: Use same passkey at `https://passkey-demo.local:5173`
+3. **Sync Test**: Wait for iCloud sync, test on another Apple device
+4. **Multi-Device**: Verify passkey works across iPhone, iPad, Mac, Web
+
+### Device Testing
+
+**Physical Device (Recommended):**
+- Full Face ID/Touch ID functionality
+- Complete iCloud Keychain sync
+- Real-world user experience
+
+**iOS Simulator:**
+- Limited biometric simulation
+- No actual keychain sync
+- Good for UI/UX testing
+
+## 🔒 Security Features
+
+### iOS Integration
+
+- **Platform Authenticators**: Uses iOS's built-in Face ID/Touch ID
+- **Secure Enclave**: Private keys stored in device's Secure Enclave
+- **iCloud Keychain**: End-to-end encrypted sync across Apple devices
+- **User Verification**: Biometric authentication for all operations
+
+### WebAuthn Compliance
+
+- **FIDO2/WebAuthn Standard**: Full compliance with W3C WebAuthn specification
+- **Attestation**: Supports platform attestation formats
+- **User Verification**: Required user verification for all credentials
+- **Resident Keys**: All passkeys are discoverable credentials
+
+## 📚 Resources
+
+- [Apple AuthenticationServices Documentation](https://developer.apple.com/documentation/authenticationservices)
+- [WebAuthn API Reference](https://w3c.github.io/webauthn/)
+- [FIDO Alliance](https://fidoalliance.org/)
+- [SwiftUI Documentation](https://developer.apple.com/documentation/swiftui)
+
+## 📄 License
+
+This demo follows the same license as the main WebAuthn library (BSD 3-Clause).
