@@ -1,6 +1,7 @@
 import Foundation
 import AuthenticationServices
 import SwiftUI
+import LocalAuthentication
 
 @MainActor
 class WebAuthnService: NSObject, ObservableObject {
@@ -209,14 +210,19 @@ class WebAuthnService: NSObject, ObservableObject {
     // MARK: - Capability Check
     
     var isWebAuthnSupported: Bool {
-        // For iOS 16.0-16.3 compatibility, we check if the class exists
-        // isSupported was added in iOS 16.4
-        if #available(iOS 16.4, *) {
-            return ASAuthorizationPlatformPublicKeyCredentialProvider.isSupported
-        } else {
-            // On iOS 16.0-16.3, we assume WebAuthn is supported if the device has biometrics
-            return true // Platform authenticators are available on iOS 16.0+
+        // WebAuthn with platform authenticators requires iOS 16.0+
+        guard #available(iOS 16.0, *) else {
+            return false
         }
+        
+        // Check if the device has biometric authentication or device passcode
+        let context = LAContext()
+        var error: NSError?
+        
+        // This checks if the device can use biometrics (Face ID/Touch ID) or device passcode
+        let canEvaluatePolicy = context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error)
+        
+        return canEvaluatePolicy
     }
     
     // MARK: - Private Properties for Async/Await Bridge
