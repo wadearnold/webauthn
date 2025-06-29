@@ -27,7 +27,7 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleDeletePasskey = async (credentialId, passkeyName) => {
-    const confirmMessage = `Delete "${passkeyName}"?\n\n⚠️ IMPORTANT: This will remove the passkey from this server, but it will remain in your device's keychain.\n\nTo fully remove it from your device, search for "${serverName}" in:\n• Mac: System Settings > Passwords > Website & App Passwords\n• iPhone/iPad: Settings > Passwords\n• Android: Settings > Passwords & accounts > Google > Passkeys\n• Windows: Settings > Accounts > Sign-in options > Security keys\n• Chrome: Settings > Autofill and passwords > Password Manager > Passkeys\n\nContinue with deletion?`;
+    const confirmMessage = `Delete "${passkeyName}"?\n\n⚠️ IMPORTANT: This only removes the passkey from this demo server.\n\nTo fully remove it from your device keychain, please consult your system's documentation for managing saved passwords and passkeys.\n\nContinue with deletion?`;
     
     if (!confirm(confirmMessage)) {
       return;
@@ -223,14 +223,9 @@ export default function Dashboard({ user, onLogout }) {
           Deleting a passkey here only removes it from this demo server. The passkey remains in your device's keychain and may still appear during authentication prompts.
         </p>
         
-        <strong>To fully remove passkeys from your device, search for "{serverName}" in:</strong>
-        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
-          <li><strong>Mac:</strong> System Settings → Passwords → Website & App Passwords</li>
-          <li><strong>iPhone/iPad:</strong> Settings → Passwords</li>
-          <li><strong>Android:</strong> Settings → Passwords & accounts → Google → Passkeys</li>
-          <li><strong>Windows:</strong> Settings → Accounts → Sign-in options → Security keys</li>
-          <li><strong>Chrome:</strong> Settings → Autofill and passwords → Password Manager → Passkeys</li>
-        </ul>
+        <p style={{ margin: '0.5rem 0' }}>
+          <strong>To fully remove passkeys from your device:</strong> Please consult your operating system's documentation for managing saved passwords and passkeys. The exact steps vary by system version and may change over time.
+        </p>
 
         <details style={{ marginTop: '1rem' }}>
           <summary style={{ cursor: 'pointer', fontWeight: '600' }}>📖 Passkey Technical Information</summary>
