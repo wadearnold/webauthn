@@ -133,11 +133,20 @@ func main() {
 		),
 	)
 
-	// Start server
+	// Start server with cross-platform configuration info
 	fmt.Println("🚀 WebAuthn Passkey Demo Server starting on :8080")
-	fmt.Println("📱 Frontend should be running on http://localhost:5173")
-	fmt.Println("🔐 WebAuthn RPID: localhost")
-	fmt.Println("🌐 Allowed origins: http://localhost:5173")
+	fmt.Println("🌐 Cross-Platform Configuration:")
+	fmt.Printf("🔐 WebAuthn RPID: %s\n", config.RPID)
+	fmt.Println("📱 React Frontend: http://passkey-demo.local:5173")
+	fmt.Println("📡 Backend API: http://passkey-demo.local:8080")
+	fmt.Println("🔄 Allowed Origins:")
+	for _, origin := range config.RPOrigins {
+		fmt.Printf("   • %s\n", origin)
+	}
+	fmt.Println()
+	fmt.Println("⚠️  IMPORTANT: Add '127.0.0.1 passkey-demo.local' to your /etc/hosts file")
+	fmt.Println("🔗 See backend/README.md for setup instructions")
+	fmt.Println()
 
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }
