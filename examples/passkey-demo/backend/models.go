@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -43,12 +44,21 @@ type Session struct {
 
 // PasskeyInfo represents a passkey for frontend display
 type PasskeyInfo struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	CreatedAt   time.Time `json:"createdAt"`
-	LastUsed    time.Time `json:"lastUsed"`
-	Transports  []string  `json:"transports"`
-	BackedUp    bool      `json:"backedUp"`
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	CreatedAt        time.Time `json:"createdAt"`
+	LastUsed         time.Time `json:"lastUsed"`
+	Transports       []string  `json:"transports"`
+	BackedUp         bool      `json:"backedUp"`
+	BackupEligible   bool      `json:"backupEligible"`
+	UserVerified     bool      `json:"userVerified"`
+	AttestationType  string    `json:"attestationType"`
+	AuthenticatorAttachment string `json:"authenticatorAttachment"`
+	SignCount        uint32    `json:"signCount"`
+	AAGUID          string    `json:"aaguid"`
+	// User information associated with this credential
+	Username        string    `json:"username"`
+	DisplayName     string    `json:"displayName"`
 }
 
 // InMemoryStore provides thread-safe in-memory storage
@@ -161,13 +171,27 @@ func (s *InMemoryStore) GetUserPasskeys(username string) ([]PasskeyInfo, error) 
 			transports[j] = string(transport)
 		}
 
+		// Convert AAGUID to hex string
+		aaguidStr := ""
+		if len(cred.Authenticator.AAGUID) > 0 {
+			aaguidStr = fmt.Sprintf("%x", cred.Authenticator.AAGUID)
+		}
+
 		passkeys[i] = PasskeyInfo{
-			ID:         string(cred.ID),
-			Name:       generatePasskeyName(cred),
-			CreatedAt:  user.CreatedAt, // In real app, store credential creation time
-			LastUsed:   time.Now(),     // In real app, track actual last usage
-			Transports: transports,
-			BackedUp:   cred.Flags.BackupState,
+			ID:                      string(cred.ID),
+			Name:                    generatePasskeyName(cred),
+			CreatedAt:               user.CreatedAt, // In real app, store credential creation time
+			LastUsed:                time.Now(),     // In real app, track actual last usage
+			Transports:              transports,
+			BackedUp:                cred.Flags.BackupState,
+			BackupEligible:          cred.Flags.BackupEligible,
+			UserVerified:            cred.Flags.UserVerified,
+			AttestationType:         cred.AttestationType,
+			AuthenticatorAttachment: string(cred.Authenticator.Attachment),
+			SignCount:               cred.Authenticator.SignCount,
+			AAGUID:                  aaguidStr,
+			Username:                user.Username,
+			DisplayName:             user.DisplayName,
 		}
 	}
 
@@ -228,6 +252,17 @@ func (s *InMemoryStore) CleanupExpiredSessions() {
 func generatePasskeyName(cred webauthn.Credential) string {
 	// In a real app, you might detect device type based on AAGUID
 	// or let users name their passkeys
+	
+	// Consider attachment type first
+	attachment := string(cred.Authenticator.Attachment)
+	if attachment == "platform" {
+		if cred.Flags.BackupState {
+			return "Synced Platform Passkey"
+		}
+		return "Platform Passkey"
+	}
+	
+	// For cross-platform authenticators, use transport info
 	if len(cred.Transport) > 0 {
 		switch cred.Transport[0] {
 		case "internal":
@@ -239,9 +274,21 @@ func generatePasskeyName(cred webauthn.Credential) string {
 		case "ble":
 			return "Bluetooth Security Key"
 		case "hybrid":
+			if cred.Flags.BackupState {
+				return "Synced Phone/Tablet"
+			}
 			return "Phone/Tablet Passkey"
 		}
 	}
+	
+	// Fallback based on backup state
+	if cred.Flags.BackupEligible {
+		if cred.Flags.BackupState {
+			return "Synced Passkey"
+		}
+		return "Backup-Eligible Passkey"
+	}
+	
 	return "Security Key"
 }
 

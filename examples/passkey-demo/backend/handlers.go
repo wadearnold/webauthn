@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -42,6 +43,35 @@ type ErrorResponse struct {
 	Details string `json:"details,omitempty"`
 }
 
+// Username validation regex: alphanumeric, hyphens, underscores, dots (3-30 chars)
+var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9._-]{3,30}$`)
+
+func validateUsername(username string) error {
+	if username == "" {
+		return fmt.Errorf("username is required")
+	}
+	
+	if len(username) < 3 {
+		return fmt.Errorf("username must be at least 3 characters long")
+	}
+	
+	if len(username) > 30 {
+		return fmt.Errorf("username must be no more than 30 characters long")
+	}
+	
+	if !usernameRegex.MatchString(username) {
+		return fmt.Errorf("username can only contain letters, numbers, dots, hyphens, and underscores")
+	}
+	
+	// Don't allow usernames that start or end with special characters
+	if strings.HasPrefix(username, ".") || strings.HasPrefix(username, "-") || strings.HasPrefix(username, "_") ||
+		strings.HasSuffix(username, ".") || strings.HasSuffix(username, "-") || strings.HasSuffix(username, "_") {
+		return fmt.Errorf("username cannot start or end with dots, hyphens, or underscores")
+	}
+	
+	return nil
+}
+
 type SuccessResponse struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
@@ -61,8 +91,8 @@ func (app *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Username == "" {
-		app.writeError(w, "Username is required", http.StatusBadRequest)
+	if err := validateUsername(req.Username); err != nil {
+		app.writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -151,6 +181,8 @@ func (app *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	app.writeSuccess(w, "Registration successful", map[string]interface{}{
 		"credentialId": credential.ID,
 		"username":     user.Username,
+		"displayName":  user.DisplayName,
+		"userId":       user.ID,
 	})
 }
 
@@ -164,6 +196,12 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 
 	// Support both discoverable and non-discoverable login
 	if req.Username != "" {
+		// Validate username format
+		if err := validateUsername(req.Username); err != nil {
+			app.writeError(w, "Authentication failed", http.StatusUnauthorized) // Don't reveal validation details
+			return
+		}
+		
 		// Traditional login with username
 		user, exists := app.store.GetUser(req.Username)
 		if !exists {
@@ -260,8 +298,9 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 		app.setUserSession(w, user.Username)
 
 		app.writeSuccess(w, "Authentication successful", map[string]interface{}{
-			"username": user.Username,
-			"userId":   user.ID,
+			"username":    user.Username,
+			"displayName": user.DisplayName,
+			"userId":      user.ID,
 		})
 	} else {
 		// Discoverable login
@@ -299,8 +338,9 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 		app.setUserSession(w, appUser.Username)
 
 		app.writeSuccess(w, "Discoverable authentication successful", map[string]interface{}{
-			"username": appUser.Username,
-			"userId":   appUser.ID,
+			"username":    appUser.Username,
+			"displayName": appUser.DisplayName,
+			"userId":      appUser.ID,
 		})
 	}
 

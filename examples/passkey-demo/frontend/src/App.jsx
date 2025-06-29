@@ -15,13 +15,21 @@ function App() {
 
   const handleRegistrationSuccess = (result) => {
     console.log('Registration successful:', result);
-    setUser({ username: result.data.username });
+    setUser({ 
+      username: result.data.username,
+      displayName: result.data.displayName,
+      userId: result.data.userId
+    });
     setCurrentView('dashboard');
   };
 
   const handleLoginSuccess = (result) => {
     console.log('Login successful:', result);
-    setUser({ username: result.data.username });
+    setUser({ 
+      username: result.data.username,
+      displayName: result.data.displayName,
+      userId: result.data.userId
+    });
     setCurrentView('dashboard');
   };
 

@@ -72,7 +72,7 @@ export default function Dashboard({ user, onLogout }) {
     <div className="card">
       <div className="user-info">
         <div>
-          <h3>Welcome, {user.username}!</h3>
+          <h3>Welcome, {user.displayName || user.username}!</h3>
           <p style={{ margin: 0, color: '#666', fontSize: '0.875rem' }}>
             Signed in with passkey authentication
           </p>
@@ -116,19 +116,56 @@ export default function Dashboard({ user, onLogout }) {
                 <h4>
                   {getTransportIcon(passkey.transports[0])} {passkey.name}
                   {passkey.backedUp && <span style={{ marginLeft: '0.5rem' }}>☁️</span>}
+                  {passkey.userVerified && <span style={{ marginLeft: '0.5rem' }}>✅</span>}
                 </h4>
-                <p>
-                  Created: {formatDate(passkey.createdAt)} • 
-                  Last used: {formatDate(passkey.lastUsed)}
-                  {passkey.transports.length > 0 && (
-                    <> • Transport: {passkey.transports.join(', ')}</>
-                  )}
-                </p>
-                {passkey.backedUp && (
-                  <p style={{ color: '#28a745', fontSize: '0.75rem', margin: '0.25rem 0 0 0' }}>
-                    ✓ Backed up and synced across devices
+                
+                <div style={{ margin: '0.5rem 0', padding: '0.5rem', background: '#f8f9fa', borderRadius: '4px', fontSize: '0.875rem' }}>
+                  <p style={{ margin: '0 0 0.25rem 0', fontWeight: '600', color: '#333' }}>
+                    👤 User: {passkey.displayName || passkey.username} ({passkey.username})
                   </p>
-                )}
+                  <p style={{ margin: 0, color: '#666' }}>
+                    Created: {formatDate(passkey.createdAt)} • 
+                    Last used: {formatDate(passkey.lastUsed)}
+                  </p>
+                </div>
+
+                <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.5rem' }}>
+                  <p style={{ margin: '0.125rem 0' }}>
+                    <strong>Transport:</strong> {passkey.transports.join(', ')}
+                    {passkey.authenticatorAttachment && (
+                      <> • <strong>Attachment:</strong> {passkey.authenticatorAttachment}</>
+                    )}
+                  </p>
+                  <p style={{ margin: '0.125rem 0' }}>
+                    <strong>Attestation:</strong> {passkey.attestationType || 'none'}
+                    {passkey.signCount > 0 && (
+                      <> • <strong>Sign Count:</strong> {passkey.signCount}</>
+                    )}
+                  </p>
+                  {passkey.aaguid && (
+                    <p style={{ margin: '0.125rem 0' }}>
+                      <strong>AAGUID:</strong> {passkey.aaguid}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
+                  {passkey.backedUp && (
+                    <span style={{ color: '#28a745', marginRight: '1rem' }}>
+                      ✓ Backed up and synced
+                    </span>
+                  )}
+                  {passkey.backupEligible && !passkey.backedUp && (
+                    <span style={{ color: '#ffc107', marginRight: '1rem' }}>
+                      ⚠️ Backup eligible but not backed up
+                    </span>
+                  )}
+                  {passkey.userVerified && (
+                    <span style={{ color: '#17a2b8', marginRight: '1rem' }}>
+                      🔐 User verification enabled
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="passkey-actions">
                 <button
@@ -145,12 +182,16 @@ export default function Dashboard({ user, onLogout }) {
       )}
 
       <div className="demo-note">
-        <strong>Demo Information:</strong>
+        <strong>Passkey Information Guide:</strong>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
-          <li><strong>Backed up passkeys (☁️):</strong> Synced to your cloud keychain (iCloud, Google, etc.)</li>
-          <li><strong>Transport types:</strong> How the passkey can be used (device biometrics, USB, NFC, etc.)</li>
-          <li><strong>Security:</strong> Each passkey is cryptographically unique and cannot be phished</li>
-          <li><strong>Deletion:</strong> Removing a passkey here only affects this demo server</li>
+          <li><strong>User Info:</strong> Shows the display name and username associated with each passkey</li>
+          <li><strong>Backup Status (☁️):</strong> Indicates if passkey is synced to cloud keychain (iCloud, Google, etc.)</li>
+          <li><strong>User Verification (✅):</strong> Shows if biometric/PIN verification is enabled</li>
+          <li><strong>Transport:</strong> How the passkey communicates (internal, USB, NFC, Bluetooth, hybrid)</li>
+          <li><strong>Attachment:</strong> Platform (built-in) vs cross-platform (external) authenticator</li>
+          <li><strong>Attestation:</strong> Cryptographic proof of authenticator authenticity</li>
+          <li><strong>Sign Count:</strong> Counter that helps detect cloned authenticators</li>
+          <li><strong>AAGUID:</strong> Authenticator model identifier for device recognition</li>
         </ul>
       </div>
 
