@@ -1,6 +1,6 @@
-# WebAuthn Passkey Demo - Frontend
+# WebAuthn Passkey Demo - React Frontend
 
-A React 19 frontend demonstrating WebAuthn passkey authentication with deep link support.
+A React 19 web frontend demonstrating WebAuthn passkey authentication with deep link support. Part of a multi-platform passkey demo showcasing cross-platform compatibility.
 
 ## 🚀 Quick Start
 

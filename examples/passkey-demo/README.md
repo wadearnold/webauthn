@@ -1,29 +1,47 @@
-# WebAuthn Passkey Demo
+# WebAuthn Passkey Demo - Multi-Platform
 
-A complete demonstration of passwordless authentication using WebAuthn passkeys, built with Go and React 19.
+A complete demonstration of passwordless authentication using WebAuthn passkeys with **cross-platform synchronization**. Features a Go backend with React, iOS (Swift), and Android (Kotlin) frontends to showcase passkey compatibility across all major platforms.
 
 ## 🌟 Features
 
 - **True Passwordless Authentication**: No passwords required, just biometrics or device PINs
+- **Cross-Platform Compatibility**: Same passkeys work across web, iOS, and Android
 - **Discoverable Credentials**: Users can sign in without entering a username
-- **Multi-device Support**: Passkeys sync across devices when backed up
-- **Passkey Management**: View and delete registered passkeys
+- **Shared Keychain Sync**: Passkeys sync via iCloud Keychain and Google Password Manager
+- **Multi-Platform Frontends**: React web app, native iOS (Swift), and Android (Kotlin) apps
+- **Passkey Management**: View and delete registered passkeys across all platforms
+- **Deep Link Authentication**: Protected routes with automatic authentication redirect
 - **Clone Detection**: Security warnings for potentially compromised authenticators
-- **Modern UI**: Clean, responsive React 19 interface
+- **Comprehensive Debugging**: Extensive logging for troubleshooting authentication issues
 
 ## 🏗️ Architecture
 
 ### Backend (Go)
 - **WebAuthn Library**: Uses `github.com/go-webauthn/webauthn` for protocol implementation
 - **In-Memory Storage**: Thread-safe storage for users, credentials, and sessions
-- **RESTful API**: Clean REST endpoints for registration, authentication, and management
-- **CORS Support**: Configured for local development with React
+- **RESTful API**: Clean REST endpoints shared across all frontend platforms
+- **CORS Support**: Configured for cross-origin requests from multiple frontends
+- **Comprehensive Logging**: Detailed debugging for WebAuthn operations
 
-### Frontend (React 19)
+### Frontend Platforms
+
+#### 🌐 Web (React 19) - `frontend-react/`
 - **Modern React**: Uses React 19 with hooks and concurrent features
 - **WebAuthn API**: Direct browser WebAuthn API integration
-- **Responsive Design**: Works on desktop and mobile devices
-- **Error Handling**: Comprehensive error handling and user feedback
+- **Responsive Design**: Works on desktop and mobile browsers
+- **Comprehensive Debugging**: Extensive console logging for troubleshooting
+
+#### 📱 iOS (Swift) - `frontend-swift/` (Planned)
+- **Native iOS**: SwiftUI with WebAuthn platform APIs
+- **iCloud Keychain**: Automatic sync across Apple devices
+- **Face ID/Touch ID**: Native biometric authentication
+- **Universal Links**: Deep link authentication support
+
+#### 🤖 Android (Kotlin) - `frontend-kotlin/` (Planned)
+- **Jetpack Compose**: Modern Android UI framework
+- **Credential Manager**: Android WebAuthn API integration
+- **Google Password Manager**: Cross-platform passkey sync
+- **Biometric Authentication**: Fingerprint and face unlock support
 
 ## 🚀 Quick Start
 
