@@ -92,7 +92,7 @@ class WebAuthnManager(private val context: Context) {
             put("challenge", challenge)
             put("rp", JSONObject().apply {
                 put("name", "WebAuthn Passkey Demo")
-                put("id", "localhost")
+                put("id", "passkey-demo.local")
             })
             put("user", JSONObject().apply {
                 put("id", userId)
@@ -126,7 +126,7 @@ class WebAuthnManager(private val context: Context) {
     suspend fun authenticateWithPasskey(challenge: String, allowCredentials: List<String>? = null): PublicKeyCredential {
         val requestJson = JSONObject().apply {
             put("challenge", challenge)
-            put("rpId", "localhost")
+            put("rpId", "passkey-demo.local")
             put("userVerification", "required")
             put("timeout", 60000)
             allowCredentials?.let { creds ->
@@ -451,7 +451,7 @@ The Android app should demonstrate:
 # - Android Studio Hedgehog or newer
 # - Android device with API 28+ (Android 9+)
 # - Google Play Services 20.2+
-# - Backend server running on localhost:8080
+# - Backend server running on passkey-demo.local:8080
 
 # Steps
 1. Open Android Studio

@@ -43,12 +43,27 @@ A complete demonstration of passwordless authentication using WebAuthn passkeys 
 - **Google Password Manager**: Cross-platform passkey sync
 - **Biometric Authentication**: Fingerprint and face unlock support
 
+## 🚨 **CRITICAL**: Domain Setup Required
+
+**This demo uses `passkey-demo.local` for cross-platform WebAuthn compatibility. You MUST configure local domain resolution first:**
+
+```bash
+# Add to your hosts file (macOS/Linux)
+sudo vim /etc/hosts
+
+# Add this line at the end:
+127.0.0.1 passkey-demo.local
+```
+
+**Why this matters**: WebAuthn passkeys are tied to the Relying Party ID (RPID). Using a consistent domain across all platforms enables **true cross-platform passkey sharing**.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Go 1.22 or later
-- Node.js 18 or later
+- Node.js 18 or later  
 - A modern browser with WebAuthn support (Chrome, Firefox, Safari, Edge)
+- **Domain configuration** (see above)
 
 ### 1. Start the Backend
 
@@ -58,17 +73,19 @@ go mod tidy
 go run .
 ```
 
-The backend will start on `http://localhost:8080`
+**Backend will be available at**: http://passkey-demo.local:8080
 
-### 2. Start the Frontend
+### 2. Start the React Frontend
 
 ```bash
-cd examples/passkey-demo/frontend
+cd examples/passkey-demo/frontend-react
 npm install
 npm run dev
 ```
 
-The frontend will start on `http://localhost:5173`
+**Frontend will be available at**: http://passkey-demo.local:5173
+
+⚠️ **Important**: Always use `passkey-demo.local`, not `localhost`, for proper cross-platform functionality.
 
 ### 3. Open Your Browser
 

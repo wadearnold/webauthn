@@ -12,11 +12,19 @@ import (
 
 func main() {
 	// Initialize WebAuthn
-	// Best practice WebAuthn configuration for passkeys with biometric support
+	// Cross-platform WebAuthn configuration using local domain
+	// This enables passkey sharing across web, iOS, and Android platforms
 	config := &webauthn.Config{
 		RPDisplayName: "WebAuthn Passkey Demo",
-		RPID:          "localhost",
-		RPOrigins:     []string{"http://localhost:5173"}, // React dev server
+		RPID:          "passkey-demo.local", // Local domain for cross-platform compatibility
+		RPOrigins: []string{
+			"http://passkey-demo.local:5173",  // React frontend
+			"http://passkey-demo.local:3000",  // Alternative React port
+			"http://passkey-demo.local:8080",  // API server (for mobile apps)
+			"capacitor://passkey-demo.local",  // Capacitor hybrid apps
+			"ionic://passkey-demo.local",     // Ionic hybrid apps
+			// Native mobile apps will use app-specific origins but same RPID
+		},
 		AttestationPreference: protocol.PreferNoAttestation,
 		// Default authenticator selection - will be overridden per-request
 		AuthenticatorSelection: protocol.AuthenticatorSelection{

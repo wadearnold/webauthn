@@ -66,7 +66,7 @@ class WebAuthnService: NSObject, ObservableObject {
     
     func createPasskey(challenge: Data, userID: Data, userName: String, displayName: String) async throws -> ASAuthorizationPlatformPublicKeyCredentialRegistration {
         
-        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: "localhost")
+        let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(relyingPartyIdentifier: "passkey-demo.local")
         
         let request = provider.createCredentialRegistrationRequest(
             challenge: challenge,
@@ -98,7 +98,7 @@ class WebAuthnService: NSObject, ObservableObject {
 import Foundation
 
 class APIService {
-    private let baseURL = "http://localhost:8080"
+    private let baseURL = "http://passkey-demo.local:8080"
     
     func registerBegin(username: String, displayName: String) async throws -> RegistrationOptions {
         // Call /api/register/begin

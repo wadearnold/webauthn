@@ -11,12 +11,18 @@ func corsMiddleware(next http.Handler) http.Handler {
 		// React dev server, iOS simulator, Android emulator, etc.
 		origin := r.Header.Get("Origin")
 		allowedOrigins := []string{
-			"http://localhost:5173",     // React frontend
-			"http://localhost:3000",     // Alternative React port
-			"http://10.0.2.2:8080",      // Android emulator
-			"http://127.0.0.1:8080",     // iOS simulator
-			"capacitor://localhost",     // Capacitor apps
-			"ionic://localhost",        // Ionic apps
+			// Local domain origins for cross-platform compatibility
+			"http://passkey-demo.local:5173",  // React frontend
+			"http://passkey-demo.local:3000",  // Alternative React port
+			"http://passkey-demo.local:8080",  // API server access
+			"capacitor://passkey-demo.local",  // Capacitor hybrid apps
+			"ionic://passkey-demo.local",     // Ionic hybrid apps
+			// Backward compatibility with localhost for development
+			"http://localhost:5173",
+			"http://localhost:3000",
+			"http://localhost:8080",
+			"capacitor://localhost",
+			"ionic://localhost",
 		}
 		
 		// Check if origin is allowed
@@ -31,8 +37,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 		if originAllowed {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		} else {
-			// Default to React dev server for backward compatibility
-			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+			// Default to local domain for cross-platform compatibility
+			w.Header().Set("Access-Control-Allow-Origin", "http://passkey-demo.local:5173")
 		}
 		
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")

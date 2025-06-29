@@ -2,6 +2,18 @@
 
 A React 19 web frontend demonstrating WebAuthn passkey authentication with deep link support. Part of a multi-platform passkey demo showcasing cross-platform compatibility.
 
+## 🚨 **REQUIRED**: Domain Setup First
+
+**This frontend uses `passkey-demo.local` for cross-platform WebAuthn compatibility. You MUST configure local domain resolution:**
+
+```bash
+# Add to /etc/hosts (requires sudo)
+sudo vim /etc/hosts
+
+# Add this line:
+127.0.0.1 passkey-demo.local
+```
+
 ## 🚀 Quick Start
 
 ```bash
@@ -9,7 +21,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to view the demo.
+**Access the demo at**: [http://passkey-demo.local:5173](http://passkey-demo.local:5173)
+
+⚠️ **Important**: Use `passkey-demo.local:5173`, NOT `localhost:5173` for proper cross-platform passkey functionality.
 
 ## 🔧 Features
 
