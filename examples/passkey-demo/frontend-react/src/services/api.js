@@ -1,6 +1,8 @@
 // Use local domain for cross-platform WebAuthn compatibility
 // This enables passkey sharing across web, iOS, and Android platforms
-const API_BASE = 'http://passkey-demo.local:8080/api';
+// Auto-detect protocol based on current page (HTTPS preferred)
+const isHTTPS = window.location.protocol === 'https:';
+const API_BASE = `${isHTTPS ? 'https' : 'http'}://passkey-demo.local:8080/api`;
 
 // Helper function to handle API responses
 async function handleResponse(response) {

@@ -38,3 +38,8 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+# HTTPS Certificates (local development only)
+certs/
+*.pem
+*.key

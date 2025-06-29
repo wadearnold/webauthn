@@ -11,16 +11,23 @@ func corsMiddleware(next http.Handler) http.Handler {
 		// React dev server, iOS simulator, Android emulator, etc.
 		origin := r.Header.Get("Origin")
 		allowedOrigins := []string{
-			// Local domain origins for cross-platform compatibility
-			"http://passkey-demo.local:5173",  // React frontend
-			"http://passkey-demo.local:3000",  // Alternative React port
-			"http://passkey-demo.local:8080",  // API server access
+			// HTTPS origins (preferred for production-like testing)
+			"https://passkey-demo.local:5173", // React frontend (HTTPS)
+			"https://passkey-demo.local:3000", // Alternative React port (HTTPS)
+			"https://passkey-demo.local:8080", // API server access (HTTPS)
+			"https://localhost:5173",          // Localhost (HTTPS)
+			"https://localhost:3000",          // Alternative localhost port (HTTPS)
+			"https://localhost:8080",          // Backend API localhost access (HTTPS)
+			// HTTP origins (fallback for development)
+			"http://passkey-demo.local:5173",  // React frontend (HTTP)
+			"http://passkey-demo.local:3000",  // Alternative React port (HTTP)
+			"http://passkey-demo.local:8080",  // API server access (HTTP)
+			"http://localhost:5173",           // Localhost (HTTP)
+			"http://localhost:3000",           // Alternative localhost port (HTTP)
+			"http://localhost:8080",           // Backend API localhost access (HTTP)
+			// Mobile app origins
 			"capacitor://passkey-demo.local",  // Capacitor hybrid apps
 			"ionic://passkey-demo.local",     // Ionic hybrid apps
-			// Backward compatibility with localhost for development
-			"http://localhost:5173",
-			"http://localhost:3000",
-			"http://localhost:8080",
 			"capacitor://localhost",
 			"ionic://localhost",
 		}
@@ -37,8 +44,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 		if originAllowed {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		} else {
-			// Default to local domain for cross-platform compatibility
-			w.Header().Set("Access-Control-Allow-Origin", "http://passkey-demo.local:5173")
+			// Default to HTTPS local domain for cross-platform compatibility
+			// Fall back to HTTP if HTTPS not available
+			w.Header().Set("Access-Control-Allow-Origin", "https://passkey-demo.local:5173")
 		}
 		
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")

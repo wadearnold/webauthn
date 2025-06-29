@@ -54,14 +54,28 @@ Access frontend: http://localhost:5173
 Backend supports both localhost and passkey-demo.local
 ```
 
-### 🌐 **Advanced Setup (custom domain)**
+### 🌐 **Advanced Setup (custom domain with HTTPS)**
 ```bash
-# For full cross-platform testing
+# For full cross-platform testing with HTTPS
+./setup-https.sh  # Automated HTTPS setup script
+
+# Manual setup:
 sudo vim /etc/hosts
 # Add: 127.0.0.1 passkey-demo.local
 
-# Note: Requires HTTPS for WebAuthn to work with custom domains
-# http://passkey-demo.local:5173 will show "HTTPS Required" error
+# Then access: https://passkey-demo.local:5173
+```
+
+### 🔒 **HTTPS Setup (Recommended)**
+```bash
+# One-command HTTPS setup
+./setup-https.sh
+
+# This will:
+# 1. Install mkcert and generate certificates
+# 2. Configure local domain resolution
+# 3. Enable HTTPS for both frontend and backend
+# 4. Provide full WebAuthn functionality
 ```
 
 **Why domains matter**: WebAuthn passkeys are tied to the Relying Party ID (RPID). Using a consistent domain across all platforms enables **true cross-platform passkey sharing**.
@@ -98,7 +112,14 @@ npm run dev
 
 ### 3. Open Your Browser
 
-Navigate to `http://localhost:5173` and start testing!
+**Option A - HTTPS (Recommended):**
+1. Run `./setup-https.sh` for one-time HTTPS setup
+2. Navigate to `https://passkey-demo.local:5173`
+
+**Option B - HTTP (Simple):**
+1. Navigate to `http://localhost:5173`
+
+Start testing!
 
 ## 📱 Usage Guide
 

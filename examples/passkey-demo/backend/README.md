@@ -25,12 +25,21 @@ RPID: passkey-demo.local
 Result: ⚠️ Requires HTTPS for WebAuthn to work
 ```
 
-#### 🔐 **Option 3: HTTPS Setup (Production-like)**
-```
-Setup: Configure HTTPS certificates for passkey-demo.local
-Access: https://passkey-demo.local:5173
-RPID: passkey-demo.local
-Result: ✅ Full cross-platform compatibility
+#### 🔐 **Option 3: HTTPS Setup (Production-like - Recommended)**
+```bash
+# Automated setup (from passkey-demo directory)
+./setup-https.sh
+
+# Manual setup:
+brew install mkcert
+mkcert -install
+mkdir -p certs && cd certs
+mkcert passkey-demo.local localhost 127.0.0.1
+
+# Then access:
+# Frontend: https://passkey-demo.local:5173
+# Backend: https://passkey-demo.local:8080
+# Result: ✅ Full cross-platform compatibility
 ```
 
 ### ⚡ Quick Setup (macOS)
@@ -59,9 +68,14 @@ ping passkey-demo.local
 go run .
 ```
 
-**5. Access the demo:**
-- **Backend API**: http://passkey-demo.local:8080
-- **React Frontend**: http://passkey-demo.local:5173 (after starting frontend)
+**5. Run HTTPS setup (recommended):**
+```bash
+cd .. && ./setup-https.sh
+```
+
+**6. Access the demo:**
+- **Backend API**: https://passkey-demo.local:8080 (HTTPS) or http://passkey-demo.local:8080 (!WebAuthn limited)
+- **React Frontend**: https://passkey-demo.local:5173 (after starting frontend)
 
 ## 🤔 Why Local Domain Configuration?
 

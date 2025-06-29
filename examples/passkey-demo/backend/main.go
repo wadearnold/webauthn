@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -18,16 +21,23 @@ func main() {
 		RPDisplayName: "WebAuthn Passkey Demo",
 		RPID:          "passkey-demo.local", // Local domain for cross-platform compatibility
 		RPOrigins: []string{
-			// Cross-platform domain (preferred for multi-platform demos)
-			"http://passkey-demo.local:5173",  // React frontend
-			"http://passkey-demo.local:3000",  // Alternative React port
-			"http://passkey-demo.local:8080",  // API server (for mobile apps)
+			// HTTPS origins (preferred for production-like testing)
+			"https://passkey-demo.local:5173", // React frontend (HTTPS)
+			"https://passkey-demo.local:3000", // Alternative React port (HTTPS)
+			"https://passkey-demo.local:8080", // API server (HTTPS)
+			// Cross-platform domain (HTTP fallback)
+			"http://passkey-demo.local:5173",  // React frontend (HTTP)
+			"http://passkey-demo.local:3000",  // Alternative React port (HTTP)
+			"http://passkey-demo.local:8080",  // API server (HTTP)
 			"capacitor://passkey-demo.local",  // Capacitor hybrid apps
 			"ionic://passkey-demo.local",     // Ionic hybrid apps
 			// Development fallback (WebAuthn works without HTTPS on localhost)
-			"http://localhost:5173",          // React dev server fallback
-			"http://localhost:3000",          // Alternative localhost port
-			"http://localhost:8080",          // Backend API localhost access
+			"https://localhost:5173",         // React dev server (HTTPS)
+			"https://localhost:3000",         // Alternative localhost port (HTTPS)
+			"https://localhost:8080",         // Backend API localhost access (HTTPS)
+			"http://localhost:5173",          // React dev server fallback (HTTP)
+			"http://localhost:3000",          // Alternative localhost port (HTTP)
+			"http://localhost:8080",          // Backend API localhost access (HTTP)
 			// Native mobile apps will use app-specific origins but same RPID
 		},
 		AttestationPreference: protocol.PreferNoAttestation,
@@ -138,12 +148,42 @@ func main() {
 		),
 	)
 
+	// Check for HTTPS certificates
+	certFile := filepath.Join("certs", "passkey-demo.local+4.pem")
+	keyFile := filepath.Join("certs", "passkey-demo.local+4-key.pem")
+	
+	// Check if we're in the correct directory or need to look in parent
+	if _, err := os.Stat(certFile); os.IsNotExist(err) {
+		// Try parent directory (when running from backend/)
+		certFile = filepath.Join("..", "certs", "passkey-demo.local+4.pem")
+		keyFile = filepath.Join("..", "certs", "passkey-demo.local+4-key.pem")
+	}
+	
+	useHTTPS := false
+	if _, err := os.Stat(certFile); err == nil {
+		if _, err := os.Stat(keyFile); err == nil {
+			useHTTPS = true
+		}
+	}
+
 	// Start server with cross-platform configuration info
-	fmt.Println("🚀 WebAuthn Passkey Demo Server starting on :8080")
+	fmt.Println("🚀 WebAuthn Passkey Demo Server")
+	fmt.Println("===============================")
 	fmt.Println("🌐 Cross-Platform Configuration:")
 	fmt.Printf("🔐 WebAuthn RPID: %s\n", config.RPID)
-	fmt.Println("📱 React Frontend: http://passkey-demo.local:5173")
-	fmt.Println("📡 Backend API: http://passkey-demo.local:8080")
+	
+	if useHTTPS {
+		fmt.Println("🔒 HTTPS Mode: ENABLED")
+		fmt.Println("📱 React Frontend: https://passkey-demo.local:5173")
+		fmt.Println("📡 Backend API: https://passkey-demo.local:8080")
+		fmt.Printf("📜 Certificate: %s\n", certFile)
+	} else {
+		fmt.Println("🔓 HTTP Mode: Fallback (HTTPS certificates not found)")
+		fmt.Println("📱 React Frontend: http://passkey-demo.local:5173 (⚠️  requires localhost for WebAuthn)")
+		fmt.Println("📡 Backend API: http://passkey-demo.local:8080")
+		fmt.Println("💡 Run './setup-https.sh' to enable HTTPS for full WebAuthn support")
+	}
+	
 	fmt.Println("🔄 Allowed Origins:")
 	for _, origin := range config.RPOrigins {
 		fmt.Printf("   • %s\n", origin)
@@ -153,5 +193,22 @@ func main() {
 	fmt.Println("🔗 See backend/README.md for setup instructions")
 	fmt.Println()
 
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	// Start server
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: handler,
+	}
+
+	if useHTTPS {
+		// Configure TLS
+		server.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+		
+		fmt.Println("🌟 Starting HTTPS server on :8080...")
+		log.Fatal(server.ListenAndServeTLS(certFile, keyFile))
+	} else {
+		fmt.Println("🌟 Starting HTTP server on :8080...")
+		log.Fatal(server.ListenAndServe())
+	}
 }
