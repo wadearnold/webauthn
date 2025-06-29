@@ -262,6 +262,8 @@ extension WebAuthnService: ASAuthorizationControllerDelegate {
                 webAuthnError = .notSupported
             case .failed:
                 webAuthnError = .unknown("Authentication failed")
+            case .notInteractive:
+                webAuthnError = .unknown("Authentication requires user interaction")
             @unknown default:
                 webAuthnError = .unknown(authError.localizedDescription)
             }
