@@ -3,9 +3,20 @@ import Foundation
 class APIService: ObservableObject {
     static let shared = APIService()
     
-    // Use the same domain as web frontend for cross-platform passkey compatibility
-    // This ensures the same RPID (passkey-demo.local) is used across all platforms
-    private let baseURL = "https://passkey-demo.local:8080/api"
+    // Cross-platform passkey compatibility configuration
+    // IMPORTANT: The backend MUST use passkey-demo.local as RPID regardless of how we connect
+    // This temporary workaround resolves iOS Simulator DNS issues while maintaining
+    // the same RPID for true cross-platform passkey sharing
+    
+    private let baseURL: String = {
+        #if targetEnvironment(simulator)
+        // iOS Simulator workaround: Use localhost but backend still uses passkey-demo.local RPID
+        return "https://localhost:8080/api"
+        #else
+        // Physical device: Use the proper domain
+        return "https://passkey-demo.local:8080/api"
+        #endif
+    }()
     
     private let session: URLSession
     

@@ -34,8 +34,11 @@ class WebAuthnService: NSObject, ObservableObject {
             print("User ID: \(options.user.id)")
             
             // Step 2: Create platform authenticator request
+            // CRITICAL: Always use passkey-demo.local as RPID for cross-platform compatibility
+            // Even if connecting via localhost, the RPID must match the web frontend
+            let rpid = "passkey-demo.local" // Force consistent RPID across platforms
             let platformProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(
-                relyingPartyIdentifier: options.rp.id
+                relyingPartyIdentifier: rpid
             )
             
             guard let challengeData = options.challenge.base64URLDecode() else {
@@ -111,8 +114,10 @@ class WebAuthnService: NSObject, ObservableObject {
             print("RPID: \(options.rpId ?? "nil")")
             
             // Step 2: Create platform authenticator request
+            // CRITICAL: Always use passkey-demo.local as RPID for cross-platform compatibility
+            let rpid = "passkey-demo.local" // Force consistent RPID across platforms
             let platformProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(
-                relyingPartyIdentifier: options.rpId ?? "passkey-demo.local"
+                relyingPartyIdentifier: rpid
             )
             
             guard let challengeData = options.challenge.base64URLDecode() else {
