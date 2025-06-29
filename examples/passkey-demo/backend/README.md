@@ -2,9 +2,36 @@
 
 A Go backend server implementing WebAuthn passkey authentication with **cross-platform domain configuration** for seamless passkey sharing across web, iOS, and Android platforms.
 
-## 🚨 **CRITICAL**: Domain Setup Required
+## 🚨 **IMPORTANT**: WebAuthn Security Requirements
 
-This backend uses `passkey-demo.local` as the Relying Party ID (RPID) to enable **cross-platform passkey compatibility**. You **MUST** configure local domain resolution for the demo to work properly.
+This backend uses `passkey-demo.local` as the Relying Party ID (RPID) to enable **cross-platform passkey compatibility**. However, WebAuthn has strict security requirements:
+
+### 🔒 **WebAuthn Security Model**
+
+**WebAuthn requires HTTPS for custom domains** (security requirement). Only `localhost` gets special exemption.
+
+#### ✅ **Option 1: Use localhost (Easiest)**
+```
+Access: http://localhost:5173
+RPID: passkey-demo.local (configured in backend)
+Result: ✅ Works immediately, but limited cross-platform testing
+```
+
+#### 🌐 **Option 2: Use custom domain with hosts file (Advanced)**
+```
+Setup: Add '127.0.0.1 passkey-demo.local' to /etc/hosts
+Access: http://passkey-demo.local:5173
+RPID: passkey-demo.local
+Result: ⚠️ Requires HTTPS for WebAuthn to work
+```
+
+#### 🔐 **Option 3: HTTPS Setup (Production-like)**
+```
+Setup: Configure HTTPS certificates for passkey-demo.local
+Access: https://passkey-demo.local:5173
+RPID: passkey-demo.local
+Result: ✅ Full cross-platform compatibility
+```
 
 ### ⚡ Quick Setup (macOS)
 

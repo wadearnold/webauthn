@@ -90,7 +90,35 @@ export function useWebAuthn() {
 
   // Check if WebAuthn is supported
   const isSupported = useCallback(() => {
-    return !!(navigator.credentials && navigator.credentials.create && navigator.credentials.get);
+    // Basic WebAuthn API check
+    const hasWebAuthnAPI = !!(navigator.credentials && navigator.credentials.create && navigator.credentials.get);
+    
+    if (!hasWebAuthnAPI) {
+      console.error('WebAuthn API not available in this browser');
+      return false;
+    }
+    
+    // Check for secure context requirement
+    const isSecureContext = window.isSecureContext;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isCustomLocalDomain = window.location.hostname.endsWith('.local');
+    
+    console.log('WebAuthn Support Check:', {
+      hasWebAuthnAPI,
+      isSecureContext,
+      isLocalhost,
+      isCustomLocalDomain,
+      hostname: window.location.hostname,
+      protocol: window.location.protocol
+    });
+    
+    // WebAuthn requires secure context (HTTPS) except for localhost
+    if (!isSecureContext && !isLocalhost) {
+      console.error('WebAuthn requires HTTPS or localhost. Current origin:', window.location.origin);
+      return false;
+    }
+    
+    return true;
   }, []);
 
   // Register a new passkey

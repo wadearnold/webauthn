@@ -18,11 +18,16 @@ func main() {
 		RPDisplayName: "WebAuthn Passkey Demo",
 		RPID:          "passkey-demo.local", // Local domain for cross-platform compatibility
 		RPOrigins: []string{
+			// Cross-platform domain (preferred for multi-platform demos)
 			"http://passkey-demo.local:5173",  // React frontend
 			"http://passkey-demo.local:3000",  // Alternative React port
 			"http://passkey-demo.local:8080",  // API server (for mobile apps)
 			"capacitor://passkey-demo.local",  // Capacitor hybrid apps
 			"ionic://passkey-demo.local",     // Ionic hybrid apps
+			// Development fallback (WebAuthn works without HTTPS on localhost)
+			"http://localhost:5173",          // React dev server fallback
+			"http://localhost:3000",          // Alternative localhost port
+			"http://localhost:8080",          // Backend API localhost access
 			// Native mobile apps will use app-specific origins but same RPID
 		},
 		AttestationPreference: protocol.PreferNoAttestation,

@@ -43,19 +43,28 @@ A complete demonstration of passwordless authentication using WebAuthn passkeys 
 - **Google Password Manager**: Cross-platform passkey sync
 - **Biometric Authentication**: Fingerprint and face unlock support
 
-## 🚨 **CRITICAL**: Domain Setup Required
+## 🚨 **IMPORTANT**: WebAuthn Security Requirements
 
-**This demo uses `passkey-demo.local` for cross-platform WebAuthn compatibility. You MUST configure local domain resolution first:**
+**This demo showcases cross-platform passkey compatibility using `passkey-demo.local` as the RPID. However, WebAuthn has security requirements:**
 
+### ✅ **Quick Start (localhost)**
 ```bash
-# Add to your hosts file (macOS/Linux)
-sudo vim /etc/hosts
-
-# Add this line at the end:
-127.0.0.1 passkey-demo.local
+# Easiest option - works immediately
+Access frontend: http://localhost:5173
+Backend supports both localhost and passkey-demo.local
 ```
 
-**Why this matters**: WebAuthn passkeys are tied to the Relying Party ID (RPID). Using a consistent domain across all platforms enables **true cross-platform passkey sharing**.
+### 🌐 **Advanced Setup (custom domain)**
+```bash
+# For full cross-platform testing
+sudo vim /etc/hosts
+# Add: 127.0.0.1 passkey-demo.local
+
+# Note: Requires HTTPS for WebAuthn to work with custom domains
+# http://passkey-demo.local:5173 will show "HTTPS Required" error
+```
+
+**Why domains matter**: WebAuthn passkeys are tied to the Relying Party ID (RPID). Using a consistent domain across all platforms enables **true cross-platform passkey sharing**.
 
 ## 🚀 Quick Start
 

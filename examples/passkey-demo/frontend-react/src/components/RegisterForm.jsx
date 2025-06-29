@@ -79,11 +79,29 @@ export default function RegisterForm({ onSuccess }) {
   };
 
   if (!isSupported()) {
+    const isCustomDomain = window.location.hostname.endsWith('.local');
+    const needsHTTPS = isCustomDomain && window.location.protocol === 'http:';
+    
     return (
       <div className="card">
         <div className="error">
-          <strong>WebAuthn Not Supported</strong>
-          <p>Your browser doesn't support WebAuthn. Please use a modern browser like Chrome, Firefox, Safari, or Edge.</p>
+          <strong>WebAuthn Not Available</strong>
+          {needsHTTPS ? (
+            <div>
+              <p><strong>HTTPS Required:</strong> WebAuthn requires HTTPS for custom domains.</p>
+              <p><strong>Quick Fix:</strong> Use <code>http://localhost:5173</code> instead of <code>{window.location.origin}</code></p>
+              <p><strong>Or:</strong> Set up HTTPS for {window.location.hostname}</p>
+              <button 
+                onClick={() => window.location.href = 'http://localhost:5173'} 
+                className="btn btn-primary"
+                style={{ marginTop: '1rem' }}
+              >
+                Switch to localhost
+              </button>
+            </div>
+          ) : (
+            <p>Your browser doesn't support WebAuthn. Please use a modern browser like Chrome, Firefox, Safari, or Edge.</p>
+          )}
         </div>
       </div>
     );
