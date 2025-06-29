@@ -195,7 +195,7 @@ func main() {
 
 	// Start server
 	server := &http.Server{
-		Addr:    "0.0.0.0:8080", // Listen on all interfaces for iOS device access
+		Addr:    ":8080",
 		Handler: handler,
 	}
 

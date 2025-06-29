@@ -1,153 +1,151 @@
-# iOS Simulator/Device Network Setup for passkey-demo.local
+# iOS Simulator DNS Resolution for passkey-demo.local
 
 ## Problem
-The error "A server with the specified hostname could not be found" occurs because iOS devices/simulators cannot resolve the custom domain `passkey-demo.local` without additional configuration.
+The error "A server with the specified hostname could not be found" occurs because the iOS simulator cannot resolve the custom domain `passkey-demo.local`.
+
+## ✅ **IMPORTANT**: Why passkey-demo.local is Required
+
+The iOS app **MUST** use `passkey-demo.local` (same as web frontend) to demonstrate true cross-platform passkey compatibility. Using different domains would create separate passkey scopes and defeat the demo's purpose.
 
 ## Solutions
 
-### Option 1: Use IP Address (Quickest for Testing)
+### Solution 1: Reset iOS Simulator (Recommended)
 
-1. **Find your Mac's IP address:**
-   ```bash
-   ifconfig | grep "inet " | grep -v 127.0.0.1
-   # Look for something like: inet 192.168.1.100
-   ```
+iOS Simulator should inherit your Mac's `/etc/hosts` file automatically, but sometimes gets stuck:
 
-2. **Update the iOS app's API base URL:**
-   
-   Edit `PasskeyDemo/Services/APIService.swift`:
-   ```swift
-   // Replace this line:
-   private let baseURL = "https://passkey-demo.local:8080/api"
-   
-   // With your Mac's IP:
-   private let baseURL = "https://192.168.1.100:8080/api"
-   ```
+```bash
+# 1. Close Xcode and Simulator completely
+killall "Simulator"
+killall "Xcode"
 
-3. **Update backend CORS:**
-   
-   Add your IP to `backend/middleware.go` allowed origins:
+# 2. Reset simulator DNS cache
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+
+# 3. Restart Simulator
+open -a Simulator
+
+# 4. Test DNS resolution in simulator
+# Open Safari in simulator and try: https://passkey-demo.local:8080/api/health
+```
+
+### Solution 2: Verify /etc/hosts Configuration
+
+Ensure your Mac's hosts file is correctly configured:
+
+```bash
+# Check current hosts file
+cat /etc/hosts | grep passkey-demo
+
+# Should show:
+# 127.0.0.1 passkey-demo.local
+# 127.0.0.1 api.passkey-demo.local
+
+# If missing, add it:
+sudo bash -c 'echo "127.0.0.1 passkey-demo.local" >> /etc/hosts'
+```
+
+### Solution 3: iOS Simulator Network Reset
+
+If simulator still can't resolve the domain:
+
+```bash
+# 1. Reset all simulators (nuclear option)
+xcrun simctl shutdown all
+xcrun simctl erase all
+
+# 2. Restart Mac networking
+sudo ifconfig en0 down
+sudo ifconfig en0 up
+
+# 3. Restart Simulator
+open -a Simulator
+```
+
+### Solution 4: Test with HTTP (Temporary Debug)
+
+If HTTPS isn't working, temporarily test with HTTP to isolate the issue:
+
+1. **Update backend to allow HTTP CORS:**
    ```go
-   "https://192.168.1.100:8080", // Your Mac's IP
+   // In middleware.go, ensure HTTP origins are included:
+   "http://passkey-demo.local:8080",
    ```
 
-### Option 2: Configure DNS for iOS Simulator
-
-1. **For iOS Simulator on the same Mac as backend:**
-   
-   The simulator should inherit your Mac's `/etc/hosts` file. If not working:
-   
-   ```bash
-   # Reset simulator
-   xcrun simctl shutdown all
-   xcrun simctl erase all
-   
-   # Restart simulator
-   ```
-
-2. **Use localhost fallback:**
-   
-   Edit `PasskeyDemo/Services/APIService.swift`:
+2. **Temporarily use HTTP in iOS app:**
    ```swift
-   // For simulator testing, use localhost
-   private let baseURL = "https://localhost:8080/api"
+   // In APIService.swift, temporarily change:
+   private let baseURL = "http://passkey-demo.local:8080/api"
    ```
 
-### Option 3: Physical Device Setup
-
-1. **Using Charles Proxy or similar:**
-   - Install Charles Proxy on your Mac
-   - Configure iOS device to use Mac as HTTP proxy
-   - Charles will resolve local domains
-
-2. **Using ngrok (for HTTPS):**
-   ```bash
-   # Install ngrok
-   brew install ngrok
-   
-   # Expose your backend
-   ngrok http 8080
-   
-   # Use the ngrok URL in your app
-   # Example: https://abc123.ngrok.io/api
-   ```
-
-### Option 4: Temporary HTTP Testing (Not Recommended)
-
-1. **Allow HTTP in Info.plist:**
+3. **Allow HTTP in iOS (for testing only):**
    
    Add to `PasskeyDemo/Info.plist`:
    ```xml
    <key>NSAppTransportSecurity</key>
    <dict>
-       <key>NSAllowsArbitraryLoads</key>
-       <true/>
+       <key>NSExceptionDomains</key>
+       <dict>
+           <key>passkey-demo.local</key>
+           <dict>
+               <key>NSExceptionAllowsInsecureHTTPLoads</key>
+               <true/>
+           </dict>
+       </dict>
    </dict>
    ```
 
-2. **Use HTTP URLs:**
-   ```swift
-   private let baseURL = "http://localhost:8080/api"
-   ```
+### Solution 5: Physical Device Testing
 
-## Recommended Development Setup
+For physical iOS devices, you need network-level configuration:
 
-### For Quick Testing:
-1. Use your Mac's IP address (Option 1)
-2. Ensure backend is running with HTTPS certificates
-3. Make sure both devices are on the same network
-
-### For Production-like Testing:
-1. Use ngrok to expose your backend with a real HTTPS URL
-2. Update backend CORS to allow ngrok domain
-3. Test with real cross-platform scenarios
-
-## Backend Updates Needed
-
-1. **Update main.go to listen on all interfaces:**
-   ```go
-   // Change from:
-   server := &http.Server{
-       Addr:    ":8080",
-       Handler: handler,
-   }
-   
-   // To:
-   server := &http.Server{
-       Addr:    "0.0.0.0:8080", // Listen on all interfaces
-       Handler: handler,
-   }
-   ```
-
-2. **Add IP-based origins to CORS:**
-   ```go
-   // In middleware.go, add:
-   "https://192.168.1.100:8080", // Your Mac's IP
-   "http://192.168.1.100:8080",  // HTTP fallback
-   ```
+1. **Connect device to same network as Mac**
+2. **Use router-level DNS or mDNS setup**
+3. **Or use a development proxy like ngrok**
 
 ## Testing Checklist
 
-- [ ] Backend running with HTTPS certificates
-- [ ] Backend listening on all interfaces (0.0.0.0)
-- [ ] iOS app using correct URL (IP or localhost)
-- [ ] CORS configured for the URL being used
-- [ ] Both devices on same network (if using IP)
-- [ ] Certificates trusted (if using HTTPS with IP)
+- [ ] `/etc/hosts` contains `127.0.0.1 passkey-demo.local`
+- [ ] Backend running with HTTPS: `https://passkey-demo.local:8080`
+- [ ] iOS Simulator DNS cache flushed
+- [ ] Simulator can access: `https://passkey-demo.local:8080/api/health`
+- [ ] Web frontend works: `https://passkey-demo.local:5173`
+- [ ] Both use the same RPID for cross-platform passkey sharing
 
-## Quick Fix for Your Current Error
+## Expected Cross-Platform Flow
 
-The fastest solution is to update your `APIService.swift`:
+1. **Register passkey on web** at `https://passkey-demo.local:5173`
+2. **Same passkey appears in iOS app** (if synced via iCloud)
+3. **Can authenticate on iOS** using web-created passkey
+4. **Can authenticate on web** using iOS-created passkey
 
-```swift
-// Change this:
-private let baseURL = "https://passkey-demo.local:8080/api"
+## Debug Commands
 
-// To this (for simulator):
-private let baseURL = "https://localhost:8080/api"
+```bash
+# Test DNS resolution on Mac
+nslookup passkey-demo.local
+# Should return: 127.0.0.1
 
-// Or to your Mac's IP (for device):
-private let baseURL = "https://192.168.1.100:8080/api" // Replace with your IP
+# Test backend connectivity
+curl -k https://passkey-demo.local:8080/api/health
+
+# Check iOS Simulator logs
+xcrun simctl spawn booted log stream --predicate 'subsystem contains "com.apple.network"'
 ```
 
-Then ensure your backend CORS includes the matching origin.
+## If All Else Fails
+
+As a last resort for development, you can temporarily use ngrok to test the cross-platform concept:
+
+```bash
+# Install ngrok
+brew install ngrok
+
+# Expose backend with HTTPS
+ngrok http 8080
+
+# Update both web and iOS to use ngrok URL
+# Example: https://abc123.ngrok.io/api
+```
+
+But remember: **the goal is to demonstrate that both platforms use the same domain for true passkey compatibility!**

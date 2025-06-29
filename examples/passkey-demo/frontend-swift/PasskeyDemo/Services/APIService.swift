@@ -3,16 +3,9 @@ import Foundation
 class APIService: ObservableObject {
     static let shared = APIService()
     
-    // Configuration for different environments
-    #if targetEnvironment(simulator)
-    // For iOS Simulator, use localhost (inherits Mac's hosts file)
-    private let baseURL = "https://localhost:8080/api"
-    #else
-    // For physical devices, you'll need to use your Mac's IP address
-    // Replace with your actual IP address when testing on device
-    // To find your IP: ifconfig | grep "inet " | grep -v 127.0.0.1
-    private let baseURL = "https://192.168.1.100:8080/api" // TODO: Replace with your Mac's IP
-    #endif
+    // Use the same domain as web frontend for cross-platform passkey compatibility
+    // This ensures the same RPID (passkey-demo.local) is used across all platforms
+    private let baseURL = "https://passkey-demo.local:8080/api"
     
     private let session: URLSession
     
