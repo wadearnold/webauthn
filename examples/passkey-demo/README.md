@@ -157,6 +157,18 @@ This demo uses simplified security for ease of development:
 - **Simplified sessions**: Production should use secure session storage
 - **No rate limiting**: Production should implement proper rate limiting
 
+### Important: Passkey Deletion Behavior
+⚠️ **WebAuthn Limitation**: When you delete a passkey in this demo, it only removes the server's record. The passkey remains in your device's keychain and may still appear during authentication prompts. This is by design for security reasons - only users can manage their device keychains.
+
+**To clean up test passkeys from your device, search for your server name (e.g., "localhost" for local development):**
+- **Mac**: System Settings → Passwords → Website & App Passwords → Search for server name
+- **iPhone/iPad**: Settings → Passwords → Search for server name
+- **Android**: Settings → Passwords & accounts → Google → Passkeys
+- **Windows**: Settings → Accounts → Sign-in options → Security keys
+- **Chrome**: Settings → Autofill and passwords → Password Manager → Passkeys
+
+💡 **Tip**: The delete confirmation dialog will show you the exact server name to search for in your device settings.
+
 ### Production Recommendations
 1. **Use HTTPS**: WebAuthn requires secure contexts in production
 2. **Secure session storage**: Use encrypted cookies or server-side sessions

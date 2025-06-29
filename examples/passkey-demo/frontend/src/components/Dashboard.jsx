@@ -5,6 +5,8 @@ export default function Dashboard({ user, onLogout }) {
   const [passkeys, setPasskeys] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  const serverName = window.location.hostname;
 
   useEffect(() => {
     loadPasskeys();
@@ -24,8 +26,10 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleDeletePasskey = async (credentialId) => {
-    if (!confirm('Are you sure you want to delete this passkey?')) {
+  const handleDeletePasskey = async (credentialId, passkeyName) => {
+    const confirmMessage = `Delete "${passkeyName}"?\n\n⚠️ IMPORTANT: This will remove the passkey from this server, but it will remain in your device's keychain.\n\nTo fully remove it from your device, search for "${serverName}" in:\n• Mac: System Settings > Passwords > Website & App Passwords\n• iPhone/iPad: Settings > Passwords\n• Android: Settings > Passwords & accounts > Google > Passkeys\n• Windows: Settings > Accounts > Sign-in options > Security keys\n• Chrome: Settings > Autofill and passwords > Password Manager > Passkeys\n\nContinue with deletion?`;
+    
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -74,7 +78,7 @@ export default function Dashboard({ user, onLogout }) {
         <div>
           <h3>Welcome, {user.displayName || user.username}!</h3>
           <p style={{ margin: 0, color: '#666', fontSize: '0.875rem' }}>
-            Signed in with passkey authentication
+            Signed in with passkey authentication • Server: <code style={{ background: '#e9ecef', padding: '0.125rem 0.25rem', borderRadius: '3px' }}>{serverName}</code>
           </p>
         </div>
         <button onClick={handleLogout} className="btn btn-secondary btn-small">
@@ -169,9 +173,9 @@ export default function Dashboard({ user, onLogout }) {
               </div>
               <div className="passkey-actions">
                 <button
-                  onClick={() => handleDeletePasskey(passkey.id)}
+                  onClick={() => handleDeletePasskey(passkey.id, passkey.name)}
                   className="btn btn-danger btn-small"
-                  title="Delete this passkey"
+                  title="Delete this passkey from server (will remain in device keychain)"
                 >
                   🗑️ Delete
                 </button>
@@ -182,17 +186,33 @@ export default function Dashboard({ user, onLogout }) {
       )}
 
       <div className="demo-note">
-        <strong>Passkey Information Guide:</strong>
+        <strong>⚠️ Important: Passkey Deletion Behavior</strong>
+        <p style={{ margin: '0.5rem 0', color: '#d32f2f', fontWeight: '600' }}>
+          Deleting a passkey here only removes it from this demo server. The passkey remains in your device's keychain and may still appear during authentication prompts.
+        </p>
+        
+        <strong>To fully remove passkeys from your device, search for "{serverName}" in:</strong>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
-          <li><strong>User Info:</strong> Shows the display name and username associated with each passkey</li>
-          <li><strong>Backup Status (☁️):</strong> Indicates if passkey is synced to cloud keychain (iCloud, Google, etc.)</li>
-          <li><strong>User Verification (✅):</strong> Shows if biometric/PIN verification is enabled</li>
-          <li><strong>Transport:</strong> How the passkey communicates (internal, USB, NFC, Bluetooth, hybrid)</li>
-          <li><strong>Attachment:</strong> Platform (built-in) vs cross-platform (external) authenticator</li>
-          <li><strong>Attestation:</strong> Cryptographic proof of authenticator authenticity</li>
-          <li><strong>Sign Count:</strong> Counter that helps detect cloned authenticators</li>
-          <li><strong>AAGUID:</strong> Authenticator model identifier for device recognition</li>
+          <li><strong>Mac:</strong> System Settings → Passwords → Website & App Passwords</li>
+          <li><strong>iPhone/iPad:</strong> Settings → Passwords</li>
+          <li><strong>Android:</strong> Settings → Passwords & accounts → Google → Passkeys</li>
+          <li><strong>Windows:</strong> Settings → Accounts → Sign-in options → Security keys</li>
+          <li><strong>Chrome:</strong> Settings → Autofill and passwords → Password Manager → Passkeys</li>
         </ul>
+
+        <details style={{ marginTop: '1rem' }}>
+          <summary style={{ cursor: 'pointer', fontWeight: '600' }}>📖 Passkey Technical Information</summary>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', fontSize: '0.875rem' }}>
+            <li><strong>User Info:</strong> Display name and username associated with each passkey</li>
+            <li><strong>Backup Status (☁️):</strong> Indicates if passkey is synced to cloud keychain</li>
+            <li><strong>User Verification (✅):</strong> Shows if biometric/PIN verification is enabled</li>
+            <li><strong>Transport:</strong> How the passkey communicates (internal, USB, NFC, Bluetooth, hybrid)</li>
+            <li><strong>Attachment:</strong> Platform (built-in) vs cross-platform (external) authenticator</li>
+            <li><strong>Attestation:</strong> Cryptographic proof of authenticator authenticity</li>
+            <li><strong>Sign Count:</strong> Counter that helps detect cloned authenticators</li>
+            <li><strong>AAGUID:</strong> Authenticator model identifier for device recognition</li>
+          </ul>
+        </details>
       </div>
 
       <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>

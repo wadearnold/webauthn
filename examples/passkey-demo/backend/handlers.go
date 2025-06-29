@@ -175,6 +175,9 @@ func (app *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	user.Credentials = append(user.Credentials, *credential)
 	app.store.UpdateUser(user)
 
+	// Set user session cookie (so user is logged in after registration)
+	app.setUserSession(w, user.Username)
+
 	// Clean up session
 	app.store.DeleteSession(sessionID)
 
