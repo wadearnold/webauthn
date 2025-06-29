@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/google/uuid"
 )
 
 // Context keys
@@ -50,25 +50,25 @@ func validateUsername(username string) error {
 	if username == "" {
 		return fmt.Errorf("username is required")
 	}
-	
+
 	if len(username) < 3 {
 		return fmt.Errorf("username must be at least 3 characters long")
 	}
-	
+
 	if len(username) > 30 {
 		return fmt.Errorf("username must be no more than 30 characters long")
 	}
-	
+
 	if !usernameRegex.MatchString(username) {
 		return fmt.Errorf("username can only contain letters, numbers, dots, hyphens, and underscores")
 	}
-	
+
 	// Don't allow usernames that start or end with special characters
 	if strings.HasPrefix(username, ".") || strings.HasPrefix(username, "-") || strings.HasPrefix(username, "_") ||
 		strings.HasSuffix(username, ".") || strings.HasSuffix(username, "-") || strings.HasSuffix(username, "_") {
 		return fmt.Errorf("username cannot start or end with dots, hyphens, or underscores")
 	}
-	
+
 	return nil
 }
 
@@ -103,7 +103,7 @@ func (app *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 		if displayName == "" {
 			displayName = req.Username
 		}
-		
+
 		var err error
 		user, err = app.store.CreateUser(req.Username, displayName)
 		if err != nil {
@@ -117,7 +117,9 @@ func (app *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 		user,
 		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
 		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
-			UserVerification: protocol.VerificationRequired,
+			AuthenticatorAttachment: protocol.Platform,              // Prefer platform authenticators (built-in biometrics)
+			UserVerification:        protocol.VerificationPreferred, // Prefer biometrics but allow PIN
+			ResidentKey:             protocol.ResidentKeyRequirementRequired,
 		}),
 	)
 	if err != nil {
@@ -171,9 +173,24 @@ func (app *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update user with new credential
-	user.Credentials = append(user.Credentials, *credential)
-	app.store.UpdateUser(user)
+	// Check if this credential already exists (prevent duplicates)
+	credentialExists := false
+	for _, existingCred := range user.Credentials {
+		if string(existingCred.ID) == string(credential.ID) {
+			credentialExists = true
+			fmt.Printf("WARNING: Attempted to register duplicate credential for user %s, CredentialID: %x\n", 
+				user.Username, credential.ID)
+			break
+		}
+	}
+
+	// Only add credential if it doesn't already exist
+	if !credentialExists {
+		user.Credentials = append(user.Credentials, *credential)
+		app.store.UpdateUser(user)
+		fmt.Printf("SUCCESS: New credential registered for user %s, CredentialID: %x\n", 
+			user.Username, credential.ID)
+	}
 
 	// Set user session cookie (so user is logged in after registration)
 	app.setUserSession(w, user.Username)
@@ -204,7 +221,7 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 			app.writeError(w, "Authentication failed", http.StatusUnauthorized) // Don't reveal validation details
 			return
 		}
-		
+
 		// Traditional login with username
 		user, exists := app.store.GetUser(req.Username)
 		if !exists {
@@ -236,7 +253,7 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Discoverable login (passwordless)
 		options, sessionData, err := app.webAuthn.BeginDiscoverableLogin(
-			webauthn.WithUserVerification(protocol.VerificationRequired),
+			webauthn.WithUserVerification(protocol.VerificationPreferred),
 		)
 		if err != nil {
 			app.writeError(w, fmt.Sprintf("Failed to begin discoverable login: %v", err), http.StatusInternalServerError)
@@ -288,6 +305,22 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// SECURITY: Verify the returned credential still exists in the user's current credential list
+		// This prevents authentication with deleted credentials that might still be in device keychain
+		credentialExists := false
+		for _, userCred := range user.Credentials {
+			if string(userCred.ID) == string(credential.ID) {
+				credentialExists = true
+				break
+			}
+		}
+		if !credentialExists {
+			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %x\n",
+				user.Username, credential.ID)
+			app.writeError(w, "Authentication failed: credential no longer valid", http.StatusUnauthorized)
+			return
+		}
+
 		// Check for clone warning
 		if credential.Authenticator.CloneWarning {
 			// Log security event but allow login for demo
@@ -328,13 +361,29 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// SECURITY: Verify the returned credential still exists in the user's current credential list
+		// This prevents authentication with deleted credentials that might still be in device keychain
+		appUser := user.(*User)
+		credentialExists := false
+		for _, userCred := range appUser.Credentials {
+			if string(userCred.ID) == string(credential.ID) {
+				credentialExists = true
+				break
+			}
+		}
+		if !credentialExists {
+			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %x\n",
+				appUser.Username, credential.ID)
+			app.writeError(w, "Authentication failed: credential no longer valid", http.StatusUnauthorized)
+			return
+		}
+
 		// Check for clone warning
 		if credential.Authenticator.CloneWarning {
 			fmt.Printf("WARNING: Clone detected for user %s\n", user.WebAuthnName())
 		}
 
 		// Update credential
-		appUser := user.(*User)
 		app.updateUserCredential(appUser, credential)
 
 		// Set user session cookie
@@ -389,6 +438,7 @@ func (app *App) handleDeletePasskey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("SECURITY: Passkey deleted for user %s, CredentialID: %x\n", username, credentialID)
 	app.writeSuccess(w, "Passkey deleted successfully", nil)
 }
 
@@ -403,6 +453,67 @@ func (app *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 	})
 
 	app.writeSuccess(w, "Logged out successfully", nil)
+}
+
+// Protected profile endpoint
+func (app *App) handleGetProfile(w http.ResponseWriter, r *http.Request) {
+	// Extract username from URL path: /api/user/{username}/profile
+	path := strings.TrimPrefix(r.URL.Path, "/api/user/")
+	parts := strings.Split(path, "/")
+	if len(parts) < 2 || parts[1] != "profile" {
+		app.writeError(w, "Invalid profile URL", http.StatusBadRequest)
+		return
+	}
+	requestedUsername := parts[0]
+
+	// Check if user is authenticated
+	currentUsername := app.getCurrentUser(r)
+	if currentUsername == "" {
+		// Return 401 with redirect URL for deep linking
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":       "Authentication required",
+			"code":        "AUTH_REQUIRED",
+			"redirectUrl": r.URL.Path,
+		})
+		return
+	}
+
+	// Get user from store
+	user, exists := app.store.GetUser(requestedUsername)
+	if !exists {
+		app.writeError(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if the current user can access this profile
+	// For demo, users can only view their own profile
+	if currentUsername != requestedUsername {
+		app.writeError(w, "Access denied: You can only view your own profile", http.StatusForbidden)
+		return
+	}
+
+	// Get user's passkeys for the profile
+	passkeys, _ := app.store.GetUserPasskeys(requestedUsername)
+
+	// Return profile data
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"username":                  user.Username,
+		"displayName":               user.DisplayName,
+		"createdAt":                 user.CreatedAt,
+		"passkeyCount":              len(passkeys),
+		"hasBackupEligiblePasskeys": hasBackupEligiblePasskeys(passkeys),
+	})
+}
+
+// Helper function to check if user has backup-eligible passkeys
+func hasBackupEligiblePasskeys(passkeys []PasskeyInfo) bool {
+	for _, pk := range passkeys {
+		if pk.BackupEligible {
+			return true
+		}
+	}
+	return false
 }
 
 // Helper methods

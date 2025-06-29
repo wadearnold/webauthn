@@ -93,6 +93,15 @@ func main() {
 		app.handleLogout(w, r)
 	})
 
+	// Protected profile endpoint
+	mux.HandleFunc("/api/user/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		app.handleGetProfile(w, r)
+	})
+
 	// Health check
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

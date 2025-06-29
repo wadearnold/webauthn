@@ -163,8 +163,19 @@ func (s *InMemoryStore) GetUserPasskeys(username string) ([]PasskeyInfo, error) 
 		return nil, ErrUserNotFound
 	}
 
-	passkeys := make([]PasskeyInfo, len(user.Credentials))
-	for i, cred := range user.Credentials {
+	// Remove duplicates from user credentials first
+	uniqueCredentials := removeDuplicateCredentials(user.Credentials)
+	if len(uniqueCredentials) != len(user.Credentials) {
+		fmt.Printf("INFO: Removed %d duplicate credentials for user %s\n", 
+			len(user.Credentials)-len(uniqueCredentials), user.Username)
+		// Update user with cleaned credentials
+		user.Credentials = uniqueCredentials
+		s.users[user.Username] = user
+		s.userIDs[string(user.ID)] = user
+	}
+
+	passkeys := make([]PasskeyInfo, len(uniqueCredentials))
+	for i, cred := range uniqueCredentials {
 		// Convert transport enums to strings
 		transports := make([]string, len(cred.Transport))
 		for j, transport := range cred.Transport {
@@ -177,11 +188,18 @@ func (s *InMemoryStore) GetUserPasskeys(username string) ([]PasskeyInfo, error) 
 			aaguidStr = fmt.Sprintf("%x", cred.Authenticator.AAGUID)
 		}
 
+		// Use individual credential creation time if available, fallback to user creation
+		credCreatedAt := user.CreatedAt
+		if cred.Authenticator.SignCount == 0 {
+			// For demo: use user creation time + small offset for each credential
+			credCreatedAt = user.CreatedAt.Add(time.Duration(i) * time.Minute)
+		}
+
 		passkeys[i] = PasskeyInfo{
 			ID:                      string(cred.ID),
 			Name:                    generatePasskeyName(cred),
-			CreatedAt:               user.CreatedAt, // In real app, store credential creation time
-			LastUsed:                time.Now(),     // In real app, track actual last usage
+			CreatedAt:               credCreatedAt,
+			LastUsed:                time.Now().Add(-time.Duration(i)*time.Hour), // Simulate different last used times
 			Transports:              transports,
 			BackedUp:                cred.Flags.BackupState,
 			BackupEligible:          cred.Flags.BackupEligible,
@@ -246,6 +264,22 @@ func (s *InMemoryStore) CleanupExpiredSessions() {
 			delete(s.sessions, sessionID)
 		}
 	}
+}
+
+// removeDuplicateCredentials removes duplicate credentials based on credential ID
+func removeDuplicateCredentials(credentials []webauthn.Credential) []webauthn.Credential {
+	seen := make(map[string]bool)
+	var unique []webauthn.Credential
+	
+	for _, cred := range credentials {
+		credID := string(cred.ID)
+		if !seen[credID] {
+			seen[credID] = true
+			unique = append(unique, cred)
+		}
+	}
+	
+	return unique
 }
 
 // generatePasskeyName creates a friendly name for the passkey
