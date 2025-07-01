@@ -35,7 +35,7 @@ class WebAuthnService: NSObject, ObservableObject {
             
             // Step 2: Create platform authenticator request
             // Use the RPID from server response for proper WebAuthn compliance
-            // In development, we'll use passkey-demo.local with proper setup
+            // IMPORTANT: Must match exact RPID from server (ngrok domain for cross-platform)
             let rpid = options.rp.id
             let platformProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(
                 relyingPartyIdentifier: rpid
@@ -115,8 +115,10 @@ class WebAuthnService: NSObject, ObservableObject {
             
             // Step 2: Create platform authenticator request
             // Use the RPID from server response for proper WebAuthn compliance
-            // In development, we'll use passkey.localdemo with proper setup
-            let rpid = options.rpId ?? "passkey.localdemo"
+            // IMPORTANT: Must match the exact RPID from server (ngrok domain for cross-platform)
+            guard let rpid = options.rpId else {
+                throw WebAuthnError.apiError("Server did not provide RPID")
+            }
             let platformProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(
                 relyingPartyIdentifier: rpid
             )

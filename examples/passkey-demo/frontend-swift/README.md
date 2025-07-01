@@ -74,18 +74,37 @@ open PasskeyDemo.xcodeproj
 2. Under **Signing & Capabilities**, set your **Development Team**
 3. Update **Bundle Identifier** if needed (e.g., `com.yourteam.passkey.demo`)
 
-### 3. Backend Configuration
+### 3. Development Mode Configuration
 
-The app is configured to connect to:
-- **HTTPS**: `https://passkey-demo.local:8080/api` (preferred)
-- **HTTP**: `http://passkey-demo.local:8080/api` (fallback)
+Choose between local development or cross-platform testing:
 
-Ensure your backend is running with HTTPS certificates:
-
+#### 🏠 Local Development Mode (Fast Iteration)
 ```bash
-cd ../backend
-go run .
+# Start backend on localhost
+cd ../backend && go run .
+
+# iOS app automatically uses localhost mode
+# No additional configuration needed
 ```
+
+#### 🌐 Cross-Platform Mode (Recommended for Testing)
+```bash
+# 1. Start ngrok tunnel
+cd .. && ./scripts/start-ngrok.sh
+
+# 2. Configure iOS app with ngrok URL
+./set-ngrok-url.sh
+
+# 3. Start backend with ngrok
+cd ../backend && source ../.env && go run .
+
+# 4. Clean and rebuild iOS app in Xcode
+```
+
+**✅ Cross-Platform Benefits:**
+- Same RPID across web, iOS, and Android
+- Passkey sharing between Safari and iOS app
+- True production-like testing environment
 
 ### 4. Build and Run
 
@@ -162,6 +181,55 @@ go run .
 - **Attestation**: Supports platform attestation formats
 - **User Verification**: Required user verification for all credentials
 - **Resident Keys**: All passkeys are discoverable credentials
+
+## 🐛 Troubleshooting
+
+### Error: "Application not associated with domain"
+```
+Error Domain=com.apple.AuthenticationServices.AuthorizationError Code=1004
+Application with identifier FAKETEAMID.com.passkey.demo.ios is not associated 
+with domain 67e9-76-154-22-254.ngrok-free.app
+```
+
+**Cause**: iOS app is using localhost RPID but trying to access ngrok passkeys
+
+**Solution**:
+```bash
+# 1. Configure iOS app with current ngrok URL
+./set-ngrok-url.sh
+
+# 2. Clean and rebuild in Xcode
+# Product → Clean Build Folder
+# Product → Build and Run
+
+# 3. Verify configuration in Xcode debug console:
+# Should see: "🌐 iOS App configured for cross-platform mode"
+```
+
+### Passkeys Created in Safari Don't Work in iOS App
+
+**Cause**: Different RPIDs being used between Safari and iOS app
+
+**Solution**: Ensure both use the same ngrok domain:
+1. ✅ **Safari**: Uses ngrok URL automatically
+2. ✅ **iOS App**: Must be configured with `./set-ngrok-url.sh`
+3. ✅ **Backend**: Uses ngrok RPID when `NGROK_URL` environment variable is set
+
+### iOS App Uses Localhost Instead of ngrok
+
+**Check current configuration**:
+```swift
+// Add this to your view for debugging:
+Text(APIService.shared.getConfigurationStatus())
+```
+
+**Expected output for cross-platform mode**:
+```
+🔧 iOS App Configuration:
+Mode: Cross-Platform (ngrok)
+Base URL: https://67e9-76-154-22-254.ngrok-free.app/api
+Ngrok URL: https://67e9-76-154-22-254.ngrok-free.app
+```
 
 ## 📚 Resources
 

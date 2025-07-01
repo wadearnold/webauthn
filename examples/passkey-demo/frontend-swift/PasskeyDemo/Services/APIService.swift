@@ -6,24 +6,28 @@ import Security
 struct APIConfiguration {
     /// Detect ngrok URL from various sources
     static var ngrokURL: String? {
-        // 1. Check Info.plist for ngrok URL (can be set via build settings)
-        if let plistURL = Bundle.main.object(forInfoDictionaryKey: "NGROK_URL") as? String,
-           !plistURL.isEmpty && plistURL != "$(NGROK_URL)" {
-            return plistURL
-        }
-        
-        // 2. Check environment variables (if available in development)
-        if let envURL = ProcessInfo.processInfo.environment["NGROK_URL"],
-           !envURL.isEmpty {
-            return envURL
-        }
-        
-        // 3. Check for stored ngrok URL (could be set by a script or manually)
+        // 1. Check UserDefaults first (set by configuration script)
         if let storedURL = UserDefaults.standard.string(forKey: "NGROK_URL"),
-           !storedURL.isEmpty {
+           !storedURL.isEmpty && storedURL != "$(NGROK_URL)" {
+            print("🔧 Using ngrok URL from UserDefaults: \(storedURL)")
             return storedURL
         }
         
+        // 2. Check Info.plist for ngrok URL (can be set via build settings)
+        if let plistURL = Bundle.main.object(forInfoDictionaryKey: "NGROK_URL") as? String,
+           !plistURL.isEmpty && plistURL != "$(NGROK_URL)" {
+            print("🔧 Using ngrok URL from Info.plist: \(plistURL)")
+            return plistURL
+        }
+        
+        // 3. Check environment variables (if available in development)
+        if let envURL = ProcessInfo.processInfo.environment["NGROK_URL"],
+           !envURL.isEmpty {
+            print("🔧 Using ngrok URL from environment: \(envURL)")
+            return envURL
+        }
+        
+        print("⚠️ No ngrok URL found, falling back to localhost")
         return nil
     }
 }
@@ -37,10 +41,13 @@ class APIService: ObservableObject {
     private let baseURL: String = {
         // Check for ngrok URL in app configuration
         if let ngrokURL = APIConfiguration.ngrokURL {
-            return "\(ngrokURL)/api"
+            let apiURL = "\(ngrokURL)/api"
+            print("🌐 iOS App configured for cross-platform mode: \(apiURL)")
+            return apiURL
         }
         
         // Fallback to localhost for development
+        print("🏠 iOS App using localhost mode: http://localhost:8080/api")
         return "http://localhost:8080/api"
     }()
     
@@ -172,6 +179,18 @@ class APIService: ObservableObject {
     /// Get current API base URL for debugging
     func getCurrentBaseURL() -> String {
         return baseURL
+    }
+    
+    /// Get current configuration status for debugging
+    func getConfigurationStatus() -> String {
+        let ngrokURL = APIConfiguration.ngrokURL
+        let mode = ngrokURL != nil ? "Cross-Platform (ngrok)" : "Local Development"
+        return """
+        🔧 iOS App Configuration:
+        Mode: \(mode)
+        Base URL: \(baseURL)
+        Ngrok URL: \(ngrokURL ?? "Not configured")
+        """
     }
 }
 
