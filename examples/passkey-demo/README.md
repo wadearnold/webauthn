@@ -154,9 +154,9 @@ Use this mode for:
 # 1. Start ngrok tunnel (if not already running)
 ./scripts/start-ngrok.sh
 
-# 2. Build React app
+# 2. Build React app with ngrok URL
 cd frontend-react
-npm run build
+npm run build:ngrok
 
 # 3. Start backend with ngrok URL
 cd ../backend
@@ -273,7 +273,7 @@ npm run dev
 
 # Terminal 2: Build and serve through backend
 cd frontend-react
-npm run build  # Build for production
+npm run build:ngrok  # Build with ngrok URL
 cd ../backend
 source ../.env && go run .  # Uses ngrok URL
 
@@ -289,7 +289,7 @@ go run .
 # When ready to test cross-platform:
 # 1. Stop backend (Ctrl+C)
 # 2. Start ngrok if needed: ./scripts/start-ngrok.sh
-# 3. Build React: cd frontend-react && npm run build
+# 3. Build React: cd frontend-react && npm run build:ngrok
 # 4. Restart backend with ngrok: cd ../backend && source ../.env && go run .
 ```
 

@@ -7,6 +7,7 @@
     "dev": "./start-dev.sh",
     "dev:direct": "vite",
     "build": "vite build",
+    "build:ngrok": "./build-with-ngrok.sh",
     "preview": "vite preview"
   },
   "dependencies": {
