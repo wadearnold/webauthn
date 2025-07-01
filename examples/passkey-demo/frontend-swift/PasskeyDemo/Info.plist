@@ -45,17 +45,19 @@
 		<dict>
 			<key>localhost</key>
 			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
 				<key>NSExceptionRequiresForwardSecrecy</key>
 				<false/>
 				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.0</string>
+				<string>TLSv1.2</string>
 			</dict>
-			<key>passkey-demo.local</key>
+			<key>*.ngrok.io</key>
 			<dict>
 				<key>NSExceptionRequiresForwardSecrecy</key>
 				<false/>
 				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.0</string>
+				<string>TLSv1.2</string>
 			</dict>
 		</dict>
 	</dict>

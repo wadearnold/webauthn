@@ -1,0 +1,8 @@
+{
+  "webcredentials": {
+    "apps": [
+      "FAKETEAMID.com.passkey.demo.ios",
+      "*.com.passkey.demo.ios"
+    ]
+  }
+}

@@ -1,18 +1,23 @@
-# WebAuthn Passkey Demo - Multi-Platform
+# WebAuthn Passkey Demo - Cross-Platform
 
-A complete demonstration of passwordless authentication using WebAuthn passkeys with **cross-platform synchronization**. Features a Go backend with React, iOS (Swift), and Android (Kotlin) frontends to showcase passkey compatibility across all major platforms.
+A complete demonstration of passwordless authentication using WebAuthn passkeys with **cross-platform synchronization**. Features a Go backend with React web and iOS Swift frontends, showcasing passkey compatibility across platforms using ngrok tunneling.
 
 ## 🌟 Features
 
 - **True Passwordless Authentication**: No passwords required, just biometrics or device PINs
-- **Cross-Platform Compatibility**: Same passkeys work across web, iOS, and Android
+- **Cross-Platform Compatibility**: Same passkeys work across web and iOS
 - **Discoverable Credentials**: Users can sign in without entering a username
-- **Shared Keychain Sync**: Passkeys sync via iCloud Keychain and Google Password Manager
-- **Multi-Platform Frontends**: React web app, native iOS (Swift), and Android (Kotlin) apps
+- **Shared Keychain Sync**: Passkeys sync via iCloud Keychain and browser password managers
+- **Multi-Platform Frontends**: React web app and native iOS (Swift) app
 - **Passkey Management**: View and delete registered passkeys across all platforms
-- **Deep Link Authentication**: Protected routes with automatic authentication redirect
-- **Clone Detection**: Security warnings for potentially compromised authenticators
+- **ngrok Integration**: Public HTTPS URLs for iOS domain association compatibility
 - **Comprehensive Debugging**: Extensive logging for troubleshooting authentication issues
+
+## ⚠️ Critical WebAuthn Concept
+
+**Must Read:** [WebAuthn RPID and Origin Security Guide](./WEBAUTHN-RPID-GUIDE.md)
+
+WebAuthn requires the browser origin to match the RPID domain. This is a security feature, not a bug. The guide explains how to handle this during development.
 
 ## 🏗️ Architecture
 
@@ -20,106 +25,153 @@ A complete demonstration of passwordless authentication using WebAuthn passkeys 
 - **WebAuthn Library**: Uses `github.com/go-webauthn/webauthn` for protocol implementation
 - **In-Memory Storage**: Thread-safe storage for users, credentials, and sessions
 - **RESTful API**: Clean REST endpoints shared across all frontend platforms
-- **CORS Support**: Configured for cross-origin requests from multiple frontends
-- **Comprehensive Logging**: Detailed debugging for WebAuthn operations
+- **CORS Support**: Configured for cross-origin requests and ngrok domains
+- **HTTP Server**: Runs on port 8080, ngrok provides HTTPS termination
 
 ### Frontend Platforms
 
 #### 🌐 Web (React 19) - `frontend-react/`
-- **Modern React**: Uses React 19 with hooks and concurrent features
+- **Modern React**: Uses React 19 with hooks and Vite development server
 - **WebAuthn API**: Direct browser WebAuthn API integration
+- **Environment-based Configuration**: Automatically detects ngrok URL from environment
 - **Responsive Design**: Works on desktop and mobile browsers
-- **Comprehensive Debugging**: Extensive console logging for troubleshooting
 
-#### 📱 iOS (Swift) - `frontend-swift/` (Planned)
+#### 📱 iOS (Swift) - `frontend-swift/`
 - **Native iOS**: SwiftUI with WebAuthn platform APIs
+- **Automatic Configuration**: Detects ngrok URL from multiple sources
 - **iCloud Keychain**: Automatic sync across Apple devices
 - **Face ID/Touch ID**: Native biometric authentication
-- **Universal Links**: Deep link authentication support
-
-#### 🤖 Android (Kotlin) - `frontend-kotlin/` (Planned)
-- **Jetpack Compose**: Modern Android UI framework
-- **Credential Manager**: Android WebAuthn API integration
-- **Google Password Manager**: Cross-platform passkey sync
-- **Biometric Authentication**: Fingerprint and face unlock support
-
-## 🚨 **IMPORTANT**: WebAuthn Security Requirements
-
-**This demo showcases cross-platform passkey compatibility using `passkey-demo.local` as the RPID. However, WebAuthn has security requirements:**
-
-### ✅ **Quick Start (localhost)**
-```bash
-# Easiest option - works immediately
-Access frontend: http://localhost:5173
-Backend supports both localhost and passkey-demo.local
-```
-
-### 🌐 **Advanced Setup (custom domain with HTTPS)**
-```bash
-# For full cross-platform testing with HTTPS
-./setup-https.sh  # Automated HTTPS setup script
-
-# Manual setup:
-sudo vim /etc/hosts
-# Add: 127.0.0.1 passkey-demo.local
-
-# Then access: https://passkey-demo.local:5173
-```
-
-### 🔒 **HTTPS Setup (Recommended)**
-```bash
-# One-command HTTPS setup
-./setup-https.sh
-
-# This will:
-# 1. Install mkcert and generate certificates
-# 2. Configure local domain resolution
-# 3. Enable HTTPS for both frontend and backend
-# 4. Provide full WebAuthn functionality
-```
-
-**Why domains matter**: WebAuthn passkeys are tied to the Relying Party ID (RPID). Using a consistent domain across all platforms enables **true cross-platform passkey sharing**.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Go 1.22 or later
 - Node.js 18 or later  
-- A modern browser with WebAuthn support (Chrome, Firefox, Safari, Edge)
-- **Domain configuration** (see above)
+- ngrok account (free tier works fine)
+- A modern browser with WebAuthn support
+- iOS Simulator or device (for iOS testing)
 
-### 1. Start the Backend
+### 1. Install and Configure ngrok
 
 ```bash
-cd examples/passkey-demo/backend
-go mod tidy
-go run .
+# Install ngrok (if not already installed)
+brew install ngrok/ngrok/ngrok
+
+# Sign up at https://ngrok.com and get your auth token
+ngrok config add-authtoken YOUR_AUTH_TOKEN
+
+# Or continue without auth token (tunnel will be temporary)
 ```
 
-**Backend will be available at**: http://passkey-demo.local:8080
-
-### 2. Start the React Frontend
+### 2. Start ngrok Tunnel (One Time)
 
 ```bash
-cd examples/passkey-demo/frontend-react
+cd examples/passkey-demo
+./scripts/start-ngrok.sh
+```
+
+This will:
+- Start an ngrok tunnel on port 8080
+- Save the tunnel URL to `.env` file
+- Display the public URL and startup instructions
+
+**Note**: The ngrok tunnel stays running - you don't need to restart it when restarting the backend.
+
+### 3. Start the Backend
+
+```bash
+cd backend
+source ../.env && go run .
+```
+
+To restart the backend (for development), just stop with `Ctrl+C` and run again:
+```bash
+source ../.env && go run .
+```
+
+**Backend will be available at**: 
+- Local: http://localhost:8080
+- Public: https://your-tunnel.ngrok.io
+
+### 4. Start the React Frontend
+
+```bash
+cd frontend-react
 npm install
 npm run dev
 ```
 
-**Frontend will be available at**: http://passkey-demo.local:5173
+**Frontend will be available at**: http://localhost:5173
 
-⚠️ **Important**: Always use `passkey-demo.local`, not `localhost`, for proper cross-platform functionality.
+The React app will automatically use the ngrok URL from the `.env` file for API calls.
 
-### 3. Open Your Browser
+### 5. Configure iOS Frontend (Optional)
 
-**Option A - HTTPS (Recommended):**
-1. Run `./setup-https.sh` for one-time HTTPS setup
-2. Navigate to `https://passkey-demo.local:5173`
+```bash
+# Set ngrok URL for Swift app
+./scripts/set-swift-ngrok.sh
 
-**Option B - HTTP (Simple):**
-1. Navigate to `http://localhost:5173`
+# Then rebuild the app in Xcode
+cd frontend-swift
+open PasskeyDemo.xcodeproj
+```
 
-Start testing!
+### 6. Test the Demo
+
+⚠️ **IMPORTANT WebAuthn Security Restriction:**
+
+WebAuthn requires that the browser origin matches the RPID domain. You have two development modes:
+
+#### Option A: Local Development Mode (Quick Testing)
+Use this mode for:
+- Rapid development and testing
+- Working on a single platform (web only)
+- Quick prototyping without cross-platform needs
+
+```bash
+# Start backend WITHOUT ngrok URL
+cd backend
+go run .  # RPID will be "localhost"
+
+# Access frontend at:
+http://localhost:5173
+```
+
+**Limitations of Local Mode:**
+- ❌ Passkeys only work on localhost
+- ❌ Cannot test cross-platform sharing (iOS/Android)
+- ❌ Cannot test with real devices
+- ✅ Fast iteration for web-only development
+
+#### Option B: Cross-Platform Mode with ngrok (Production-like)
+Use this mode for:
+- Testing passkey sharing across platforms
+- iOS/Android app testing
+- Production-like environment testing
+- Testing on real devices
+
+```bash
+# 1. Start ngrok tunnel (if not already running)
+./scripts/start-ngrok.sh
+
+# 2. Build React app
+cd frontend-react
+npm run build
+
+# 3. Start backend with ngrok URL
+cd ../backend
+source ../.env && go run .
+
+# 4. Access through ngrok URL:
+https://your-tunnel.ngrok.io
+```
+
+**Benefits of ngrok Mode:**
+- ✅ Same passkeys work across web, iOS, and Android
+- ✅ Test on real devices using public HTTPS URL
+- ✅ Production-like security model
+- ✅ Proper domain association for mobile apps
+- ❌ Requires accessing via ngrok URL (not localhost)
 
 ## 📱 Usage Guide
 
@@ -172,45 +224,126 @@ Start testing!
 2. Sign out
 3. Sign back in using the passwordless flow
 
+### Cross-Platform Testing
+1. Register a passkey in the web app
+2. If using iOS app, configure it with the same ngrok URL
+3. Try signing in with the same passkey on iOS
+4. Test the cross-platform authentication experience
+
 ### Multi-device Testing
 1. Register on one device
 2. If your passkey is backed up, try signing in on another device
 3. Test the cross-device authentication experience
 
-### Security Features
-1. Try to register the same username multiple times
-2. Test the clone detection by manipulating authenticator data (advanced)
-3. Verify session timeout behavior
-
-### Error Handling
-1. Try to authenticate without registering
-2. Cancel authentication prompts
-3. Test with WebAuthn-unsupported browsers
-
 ## 🛠️ Development
+
+### Choosing Your Development Mode
+
+**When to use Local Development Mode (localhost):**
+- You're only working on the web frontend
+- You need fast iteration without building React
+- You're debugging backend logic
+- You don't need cross-platform testing
+
+**When to use Cross-Platform Mode (ngrok):**
+- You're testing iOS or Android apps
+- You need to verify passkey sharing works
+- You're testing on real devices
+- You're preparing for production deployment
+
+### Development Workflows
+
+#### Local Development Workflow (Web Only)
+```bash
+# Terminal 1: Start backend in local mode
+cd backend
+go run .  # No ngrok URL needed
+
+# Terminal 2: Start React dev server
+cd frontend-react
+npm run dev
+
+# Access at: http://localhost:5173
+```
+
+#### Cross-Platform Development Workflow
+```bash
+# Terminal 1: Start ngrok (once per session)
+./scripts/start-ngrok.sh
+
+# Terminal 2: Build and serve through backend
+cd frontend-react
+npm run build  # Build for production
+cd ../backend
+source ../.env && go run .  # Uses ngrok URL
+
+# Access at: https://your-tunnel.ngrok.io
+```
+
+#### Hybrid Development Workflow (Recommended)
+```bash
+# Start with local mode for rapid development
+cd backend
+go run .
+
+# When ready to test cross-platform:
+# 1. Stop backend (Ctrl+C)
+# 2. Start ngrok if needed: ./scripts/start-ngrok.sh
+# 3. Build React: cd frontend-react && npm run build
+# 4. Restart backend with ngrok: cd ../backend && source ../.env && go run .
+```
+
+**ngrok stays running** throughout your development session - no need to restart it!
+
+### ngrok Management
+
+```bash
+# Start ngrok tunnel (once per development session)
+./scripts/start-ngrok.sh
+
+# Get current tunnel URL
+./scripts/get-ngrok-url.sh
+
+# Stop ngrok tunnel (when done developing)
+./scripts/stop-ngrok.sh
+```
 
 ### Backend Development
 The backend is structured as follows:
-- `main.go` - Server setup and routing
+- `main.go` - Server setup and routing with ngrok support
 - `handlers.go` - HTTP request handlers
 - `models.go` - Data models and in-memory storage
-- `middleware.go` - CORS and session middleware
+- `middleware.go` - CORS middleware with ngrok domain support
 
 ### Frontend Development
-The frontend uses modern React patterns:
-- `hooks/useWebAuthn.js` - WebAuthn API integration
-- `services/api.js` - Backend API client
-- `components/` - Reusable React components
+
+#### React Frontend
+- Uses `VITE_NGROK_URL` environment variable for API base URL
+- Falls back to localhost if ngrok URL not available
+- Modern React patterns with hooks
+
+#### iOS Frontend
+- `APIConfiguration` struct detects ngrok URL from multiple sources
+- Supports Info.plist configuration for build-time injection
+- Runtime configuration via UserDefaults
 
 ### Configuration
-Backend configuration in `main.go`:
+
+Backend automatically uses ngrok URL from environment:
 ```go
-config := &webauthn.Config{
-    RPDisplayName: "WebAuthn Passkey Demo",
-    RPID:          "localhost",
-    RPOrigins:     []string{"http://localhost:5173"},
-    // ... other settings
-}
+ngrokURL := os.Getenv("NGROK_URL")
+// CORS configured to accept ngrok domains
+```
+
+React frontend uses environment variable:
+```javascript
+const ngrokUrl = import.meta.env.VITE_NGROK_URL;
+```
+
+iOS frontend detects configuration automatically:
+```swift
+// Checks Info.plist, environment, and UserDefaults
+APIConfiguration.ngrokURL
 ```
 
 ## 🔒 Security Considerations
@@ -218,76 +351,95 @@ config := &webauthn.Config{
 ### Demo vs Production
 This demo uses simplified security for ease of development:
 - **In-memory storage**: Data is lost on restart
-- **HTTP (not HTTPS)**: Only acceptable for localhost development
+- **ngrok tunneling**: Convenient for development, not recommended for production
 - **Simplified sessions**: Production should use secure session storage
 - **No rate limiting**: Production should implement proper rate limiting
 
-### Important: Passkey Deletion Behavior
-⚠️ **WebAuthn Limitation**: When you delete a passkey in this demo, it only removes the server's record. The passkey remains in your device's keychain and may still appear during authentication prompts. This is by design for security reasons - only users can manage their device keychains.
-
-**To clean up test passkeys from your device, search for your server name (e.g., "localhost" for local development):**
-- **Mac**: System Settings → Passwords → Website & App Passwords → Search for server name
-- **iPhone/iPad**: Settings → Passwords → Search for server name
-- **Android**: Settings → Passwords & accounts → Google → Passkeys
-- **Windows**: Settings → Accounts → Sign-in options → Security keys
-- **Chrome**: Settings → Autofill and passwords → Password Manager → Passkeys
-
-💡 **Tip**: The delete confirmation dialog will show you the exact server name to search for in your device settings.
+### ngrok Security
+- ngrok provides trusted HTTPS certificates
+- Tunnel URLs are publicly accessible (temporary for free tier)
+- Use ngrok auth tokens for additional security features
+- Consider ngrok paid plans for production-like testing
 
 ### Production Recommendations
-1. **Use HTTPS**: WebAuthn requires secure contexts in production
+1. **Use proper HTTPS**: Deploy with real SSL certificates
 2. **Secure session storage**: Use encrypted cookies or server-side sessions
 3. **Database storage**: Persist users and credentials in a database
 4. **Rate limiting**: Implement authentication attempt limits
 5. **Monitoring**: Log security events and failed attempts
-6. **MDS validation**: Consider using FIDO Metadata Service for attestation validation
+6. **Domain validation**: Use your own domains with proper DNS
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### ngrok Issues
+#### "ngrok is not installed"
+```bash
+brew install ngrok/ngrok/ngrok
+```
 
+#### "ngrok is not authenticated"
+```bash
+ngrok config add-authtoken YOUR_AUTH_TOKEN
+# Get token from: https://dashboard.ngrok.com/get-started/your-authtoken
+```
+
+#### "Failed to get ngrok URL"
+- Check if ngrok is running: `./scripts/get-ngrok-url.sh`
+- Restart ngrok: `./scripts/stop-ngrok.sh && ./scripts/start-ngrok.sh`
+
+### WebAuthn Issues
 #### "WebAuthn is not supported"
 - Use a modern browser (Chrome 67+, Firefox 60+, Safari 14+, Edge 18+)
-- Ensure you're accessing via `http://localhost` (not 127.0.0.1)
-- Check if WebAuthn is disabled in browser settings
+- Ensure you're accessing via HTTPS (ngrok provides this)
+
+#### iOS Domain Association Issues
+- Ensure iOS app is configured with correct ngrok URL
+- Run `./scripts/set-swift-ngrok.sh` to update configuration
+- Rebuild the iOS app in Xcode after configuration changes
 
 #### CORS Errors
-- Ensure backend is running on port 8080
-- Ensure frontend is running on port 5173
-- Check that CORS origins match in `main.go`
+- Backend automatically accepts ngrok domains
+- Ensure backend is running and accessible via ngrok URL
+- Check that frontend is using correct API base URL
 
-#### "No authenticator found" during registration
-- Enable biometrics or set up a PIN on your device
-- For testing, you can use a USB security key
-- Some browsers require user gesture before WebAuthn calls
-
-#### Session errors
+### Session Issues
 - Sessions expire after 5 minutes by default
 - Clear browser cookies if you encounter stale sessions
 - Restart the backend to clear all sessions
 
-### Browser Compatibility
-- **Chrome/Edge**: Full support including platform authenticators
-- **Firefox**: Good support, may prompt for specific authenticator
-- **Safari**: iOS 14+ and macOS Big Sur+ for full passkey support
-- **Mobile browsers**: Generally good support on modern devices
+## 🛑 Cleanup
+
+### Stop All Services
+```bash
+# Stop ngrok tunnel
+./scripts/stop-ngrok.sh
+
+# Stop backend (Ctrl+C in terminal)
+# Stop React frontend (Ctrl+C in terminal)
+```
+
+### Clean Up Passkeys
+⚠️ **Important**: Deleting passkeys in the demo only removes server records. To clean up test passkeys from your devices:
+
+- **Mac**: System Settings → Passwords → Search for your ngrok domain
+- **iPhone/iPad**: Settings → Passwords → Search for your ngrok domain  
+- **Chrome**: Settings → Autofill and passwords → Passkeys
 
 ## 📚 Learn More
 
 - [WebAuthn Specification](https://www.w3.org/TR/webauthn/)
-- [FIDO Alliance](https://fidoalliance.org/)
-- [WebAuthn Guide](https://webauthn.guide/)
+- [ngrok Documentation](https://ngrok.com/docs)
 - [Passkeys.dev](https://passkeys.dev/)
+- [FIDO Alliance](https://fidoalliance.org/)
 
 ## 🤝 Contributing
 
 This demo is part of the WebAuthn library examples. To contribute:
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+3. Test with the ngrok setup
+4. Submit a pull request
 
 ## 📄 License
 
-This demo follows the same license as the main WebAuthn library (BSD 3-Clause).
+This demo follows the same license as the main WebAuthn library.

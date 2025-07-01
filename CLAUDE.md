@@ -178,3 +178,64 @@ All Claude-generated files are organized in the `.claude/` directory to keep the
 3. **Temporary Files**: Use `.claude/archive/` for files that may be removed later
 4. **Coverage**: Let coverage reports go to `.claude/coverage/` (gitignored)
 5. **Large Test Files**: Use modularization script for files >30K bytes
+
+## Passkey Demo Development Modes
+
+The passkey demo in `/examples/passkey-demo/` supports two distinct development modes:
+
+### Local Development Mode (localhost)
+Use this mode for:
+- Rapid web-only development
+- Quick iteration without building React
+- Testing backend changes
+- Single-platform development
+
+```bash
+# Backend uses RPID: localhost
+cd examples/passkey-demo/backend
+go run .
+
+# Access React dev server
+# http://localhost:5173
+```
+
+**Characteristics:**
+- RPID is set to "localhost"
+- React dev server with hot reload
+- No cross-platform passkey sharing
+- Fast iteration cycle
+
+### Cross-Platform Mode (ngrok)
+Use this mode for:
+- Testing passkey sharing across platforms
+- iOS/Android app development
+- Production-like testing
+- Real device testing
+
+```bash
+# 1. Start ngrok tunnel
+./scripts/start-ngrok.sh
+
+# 2. Build React for production
+cd frontend-react && npm run build
+
+# 3. Backend uses RPID: your-tunnel.ngrok.io
+cd ../backend
+source ../.env && go run .
+
+# Access via ngrok URL
+# https://your-tunnel.ngrok.io
+```
+
+**Characteristics:**
+- RPID matches ngrok domain
+- React served as static files by Go
+- Passkeys work across web/iOS/Android
+- Requires accessing via ngrok URL
+
+### Important WebAuthn Security Rule
+WebAuthn requires the browser origin to match the RPID domain:
+- If RPID="localhost", must access via http://localhost:*
+- If RPID="abc.ngrok.io", must access via https://abc.ngrok.io
+
+This is a security feature, not a limitation. See `/examples/passkey-demo/WEBAUTHN-RPID-GUIDE.md` for details.

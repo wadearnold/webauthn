@@ -1,12 +1,11 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -14,31 +13,31 @@ import (
 )
 
 func main() {
-	// Initialize WebAuthn
-	// Cross-platform WebAuthn configuration using local domain
-	// This enables passkey sharing across web, iOS, and Android platforms
+	// Get ngrok URL from environment variable
+	ngrokURL := os.Getenv("NGROK_URL")
+	if ngrokURL == "" {
+		ngrokURL = "https://your-tunnel.ngrok.io" // Placeholder
+	}
+	
+	// Extract domain from ngrok URL for RPID
+	rpid := "localhost" // Default fallback
+	if ngrokURL != "https://your-tunnel.ngrok.io" {
+		// Extract domain from ngrok URL (e.g., "https://abc123.ngrok.io" -> "abc123.ngrok.io")
+		if len(ngrokURL) > 8 { // Remove "https://"
+			rpid = ngrokURL[8:]
+		}
+	}
+
+	// Initialize WebAuthn with ngrok-based configuration
+	// This enables passkey sharing across web and iOS platforms using ngrok tunneling
 	config := &webauthn.Config{
 		RPDisplayName: "WebAuthn Passkey Demo",
-		RPID:          "passkey-demo.local", // Local domain for cross-platform compatibility
+		RPID:          rpid, // Use ngrok domain for cross-platform compatibility
 		RPOrigins: []string{
-			// HTTPS origins (preferred for production-like testing)
-			"https://passkey-demo.local:5173", // React frontend (HTTPS)
-			"https://passkey-demo.local:3000", // Alternative React port (HTTPS)
-			"https://passkey-demo.local:8080", // API server (HTTPS)
-			// Cross-platform domain (HTTP fallback)
-			"http://passkey-demo.local:5173",  // React frontend (HTTP)
-			"http://passkey-demo.local:3000",  // Alternative React port (HTTP)
-			"http://passkey-demo.local:8080",  // API server (HTTP)
-			"capacitor://passkey-demo.local",  // Capacitor hybrid apps
-			"ionic://passkey-demo.local",     // Ionic hybrid apps
-			// Development fallback (WebAuthn works without HTTPS on localhost)
-			"https://localhost:5173",         // React dev server (HTTPS)
-			"https://localhost:3000",         // Alternative localhost port (HTTPS)
-			"https://localhost:8080",         // Backend API localhost access (HTTPS)
-			"http://localhost:5173",          // React dev server fallback (HTTP)
-			"http://localhost:3000",          // Alternative localhost port (HTTP)
-			"http://localhost:8080",          // Backend API localhost access (HTTP)
-			// Native mobile apps will use app-specific origins but same RPID
+			// ngrok tunnel (primary for production-like testing)
+			ngrokURL,
+			// Localhost fallback for development
+			"http://localhost:5173", // React dev server fallback
 		},
 		AttestationPreference: protocol.PreferNoAttestation,
 		// Default authenticator selection - will be overridden per-request
@@ -86,37 +85,24 @@ func main() {
 		}
 	}()
 
-	// Setup routes
-	mux := http.NewServeMux()
+	// Setup routes - organized by middleware requirements
 
+	// Main mux for all routes
+	mainMux := http.NewServeMux()
+	
+	// Create separate API mux with proper routing
+	apiMux := http.NewServeMux()
+	
 	// Registration endpoints
-	mux.HandleFunc("/api/register/begin", app.handleRegisterBegin)
-	mux.HandleFunc("/api/register/finish", app.handleRegisterFinish)
+	apiMux.HandleFunc("/api/register/begin", app.handleRegisterBegin)
+	apiMux.HandleFunc("/api/register/finish", app.handleRegisterFinish)
 
 	// Authentication endpoints  
-	mux.HandleFunc("/api/login/begin", app.handleLoginBegin)
-	mux.HandleFunc("/api/login/finish", app.handleLoginFinish)
+	apiMux.HandleFunc("/api/login/begin", app.handleLoginBegin)
+	apiMux.HandleFunc("/api/login/finish", app.handleLoginFinish)
 
-	// User management endpoints
-	mux.HandleFunc("/api/user/passkeys", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "GET":
-			app.handleGetPasskeys(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	mux.HandleFunc("/api/user/passkeys/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "DELETE":
-			app.handleDeletePasskey(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	mux.HandleFunc("/api/logout", func(w http.ResponseWriter, r *http.Request) {
+	// Other endpoints
+	apiMux.HandleFunc("/api/logout", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -124,91 +110,120 @@ func main() {
 		app.handleLogout(w, r)
 	})
 
-	// Protected profile endpoint
-	mux.HandleFunc("/api/user/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		app.handleGetProfile(w, r)
-	})
-
 	// Health check
-	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+	apiMux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status":"ok","time":"%s"}`, time.Now().Format(time.RFC3339))
 	})
 
-	// Apply middleware
-	handler := corsMiddleware(
+	// User routes handler - handles all /api/user/* routes
+	apiMux.HandleFunc("/api/user/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		
+		if strings.HasPrefix(path, "/api/user/passkeys/") && len(path) > len("/api/user/passkeys/") {
+			// Handle passkey deletion: /api/user/passkeys/{id}
+			switch r.Method {
+			case "DELETE":
+				app.handleDeletePasskey(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		} else if path == "/api/user/passkeys" {
+			// Handle passkey listing: /api/user/passkeys
+			switch r.Method {
+			case "GET":
+				app.handleGetPasskeys(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		} else if strings.Contains(path, "/profile") || path == "/api/user/" {
+			// Handle profile: /api/user/ or /api/user/{username}/profile
+			if r.Method != "GET" {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			app.handleGetProfile(w, r)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+	
+	// Apply middleware to API routes
+	apiHandler := corsMiddleware(
 		loggingMiddleware(
 			app.sessionMiddleware(
-				jsonMiddleware(mux),
+				jsonMiddleware(apiMux),
 			),
 		),
 	)
-
-	// Check for HTTPS certificates
-	certFile := filepath.Join("certs", "passkey-demo.local+4.pem")
-	keyFile := filepath.Join("certs", "passkey-demo.local+4-key.pem")
 	
-	// Check if we're in the correct directory or need to look in parent
-	if _, err := os.Stat(certFile); os.IsNotExist(err) {
-		// Try parent directory (when running from backend/)
-		certFile = filepath.Join("..", "certs", "passkey-demo.local+4.pem")
-		keyFile = filepath.Join("..", "certs", "passkey-demo.local+4-key.pem")
+	// Mount API handler  
+	mainMux.Handle("/api/", apiHandler)
+	
+	// Static files without middleware
+	mainMux.HandleFunc("/.well-known/apple-app-site-association", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("🍎 AASA file requested from: %s (User-Agent: %s)\n", r.RemoteAddr, r.UserAgent())
+		w.Header().Set("Content-Type", "application/json")
+		http.ServeFile(w, r, "static/.well-known/apple-app-site-association")
+	})
+	mainMux.Handle("/.well-known/", http.StripPrefix("/.well-known/", http.FileServer(http.Dir("static/.well-known/"))))
+	mainMux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+	
+	// React app serving
+	reactDistPath := "../frontend-react/dist"
+	if _, err := os.Stat(reactDistPath); err == nil {
+		fmt.Println("📦 Serving React build from /frontend-react/dist")
+		
+		// Serve React static assets
+		mainMux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir(reactDistPath+"/assets/"))))
+		mainMux.HandleFunc("/vite.svg", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, reactDistPath+"/vite.svg")
+		})
+		
+		// Catch-all: serve index.html for SPA routing
+		mainMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Printf("Serving HTML for: %s\n", r.URL.Path)
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			http.ServeFile(w, r, reactDistPath+"/index.html")
+		})
 	}
-	
-	useHTTPS := false
-	if _, err := os.Stat(certFile); err == nil {
-		if _, err := os.Stat(keyFile); err == nil {
-			useHTTPS = true
-		}
-	}
 
-	// Start server with cross-platform configuration info
-	fmt.Println("🚀 WebAuthn Passkey Demo Server")
-	fmt.Println("===============================")
-	fmt.Println("🌐 Cross-Platform Configuration:")
-	fmt.Printf("🔐 WebAuthn RPID: %s\n", config.RPID)
+	// Start server with mode-aware output
+	fmt.Println("🚀 WebAuthn Passkey Demo Backend")
+	fmt.Println("=================================")
+	fmt.Printf("🔐 RPID: %s\n", config.RPID)
 	
-	if useHTTPS {
-		fmt.Println("🔒 HTTPS Mode: ENABLED")
-		fmt.Println("📱 React Frontend: https://passkey-demo.local:5173")
-		fmt.Println("📡 Backend API: https://passkey-demo.local:8080")
-		fmt.Printf("📜 Certificate: %s\n", certFile)
+	if rpid == "localhost" {
+		fmt.Println("📍 Mode: Local Development")
+		fmt.Println("🏠 API: http://localhost:8080")
+		fmt.Println("")
+		fmt.Println("🌐 Access frontend at:")
+		fmt.Println("   http://localhost:5173 (with hot reload)")
+		fmt.Println("")
+		fmt.Println("⚠️  Note: Cross-platform passkeys won't work in localhost mode")
+		fmt.Println("   Use ngrok mode for iOS/cross-platform testing")
 	} else {
-		fmt.Println("🔓 HTTP Mode: Fallback (HTTPS certificates not found)")
-		fmt.Println("📱 React Frontend: http://passkey-demo.local:5173 (⚠️  requires localhost for WebAuthn)")
-		fmt.Println("📡 Backend API: http://passkey-demo.local:8080")
-		fmt.Println("💡 Run './setup-https.sh' to enable HTTPS for full WebAuthn support")
+		fmt.Println("🌍 Mode: ngrok (Cross-Platform)")
+		fmt.Printf("📡 Public API: %s/api\n", ngrokURL)
+		fmt.Println("")
+		if _, err := os.Stat("../frontend-react/dist"); err == nil {
+			fmt.Println("🌐 Access app at:")
+			fmt.Printf("   %s\n", ngrokURL)
+			fmt.Println("   (serving React build)")
+		} else {
+			fmt.Println("⚠️  React build not found!")
+			fmt.Println("   Run: cd frontend-react && npm run build")
+		}
+		fmt.Println("")
+		fmt.Println("✅ Cross-platform passkeys enabled")
 	}
-	
-	fmt.Println("🔄 Allowed Origins:")
-	for _, origin := range config.RPOrigins {
-		fmt.Printf("   • %s\n", origin)
-	}
-	fmt.Println()
-	fmt.Println("⚠️  IMPORTANT: Add '127.0.0.1 passkey-demo.local' to your /etc/hosts file")
-	fmt.Println("🔗 See backend/README.md for setup instructions")
-	fmt.Println()
 
 	// Start server
 	server := &http.Server{
 		Addr:    ":8080",
-		Handler: handler,
+		Handler: mainMux,
 	}
 
-	if useHTTPS {
-		// Configure TLS
-		server.TLSConfig = &tls.Config{
-			MinVersion: tls.VersionTLS12,
-		}
-		
-		fmt.Println("🌟 Starting HTTPS server on :8080...")
-		log.Fatal(server.ListenAndServeTLS(certFile, keyFile))
-	} else {
-		fmt.Println("🌟 Starting HTTP server on :8080...")
-		log.Fatal(server.ListenAndServe())
-	}
+	fmt.Println("🌟 Starting server on port 8080...")
+	log.Fatal(server.ListenAndServe())
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -199,7 +200,7 @@ func (app *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 		if string(existingCred.ID) == string(credential.ID) {
 			credentialExists = true
 			fmt.Printf("WARNING: Attempted to register duplicate credential for user %s, CredentialID: %s\n", 
-				user.Username, string(credential.ID))
+				user.Username, base64.URLEncoding.EncodeToString(credential.ID))
 			break
 		}
 	}
@@ -209,7 +210,7 @@ func (app *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 		user.Credentials = append(user.Credentials, *credential)
 		app.store.UpdateUser(user)
 		fmt.Printf("SUCCESS: New credential registered for user %s, CredentialID: %s\n", 
-			user.Username, string(credential.ID))
+			user.Username, base64.URLEncoding.EncodeToString(credential.ID))
 	}
 
 	// Set user session cookie (so user is logged in after registration)
@@ -263,7 +264,7 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("RPID: %s\n", options.Response.RelyingPartyID)
 			fmt.Printf("AllowCredentials count: %d\n", len(options.Response.AllowedCredentials))
 			for i, cred := range options.Response.AllowedCredentials {
-				fmt.Printf("  Credential %d: ID=%x, Type=%s\n", i+1, cred.CredentialID, cred.Type)
+				fmt.Printf("  Credential %d: ID=%s, Type=%s\n", i+1, base64.URLEncoding.EncodeToString(cred.CredentialID), cred.Type)
 			}
 			fmt.Printf("============================================\n")
 		}
@@ -364,7 +365,7 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 		}
 		if !credentialExists {
 			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %s\n",
-				user.Username, string(credential.ID))
+				user.Username, base64.URLEncoding.EncodeToString(credential.ID))
 			app.writeError(w, "Authentication failed: credential no longer valid", http.StatusUnauthorized)
 			return
 		}
@@ -421,7 +422,7 @@ func (app *App) handleLoginFinish(w http.ResponseWriter, r *http.Request) {
 		}
 		if !credentialExists {
 			fmt.Printf("SECURITY: Authentication attempt with deleted credential. User: %s, CredentialID: %s\n",
-				appUser.Username, string(credential.ID))
+				appUser.Username, base64.URLEncoding.EncodeToString(credential.ID))
 			app.writeError(w, "Authentication failed: credential no longer valid", http.StatusUnauthorized)
 			return
 		}

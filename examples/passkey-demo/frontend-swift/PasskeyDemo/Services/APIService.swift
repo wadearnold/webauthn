@@ -1,41 +1,64 @@
 import Foundation
+import Security
+
+// MARK: - API Configuration
+
+struct APIConfiguration {
+    /// Detect ngrok URL from various sources
+    static var ngrokURL: String? {
+        // 1. Check Info.plist for ngrok URL (can be set via build settings)
+        if let plistURL = Bundle.main.object(forInfoDictionaryKey: "NGROK_URL") as? String,
+           !plistURL.isEmpty && plistURL != "$(NGROK_URL)" {
+            return plistURL
+        }
+        
+        // 2. Check environment variables (if available in development)
+        if let envURL = ProcessInfo.processInfo.environment["NGROK_URL"],
+           !envURL.isEmpty {
+            return envURL
+        }
+        
+        // 3. Check for stored ngrok URL (could be set by a script or manually)
+        if let storedURL = UserDefaults.standard.string(forKey: "NGROK_URL"),
+           !storedURL.isEmpty {
+            return storedURL
+        }
+        
+        return nil
+    }
+}
 
 class APIService: ObservableObject {
     static let shared = APIService()
     
-    // Cross-platform passkey compatibility configuration
-    // IMPORTANT: The backend MUST use passkey-demo.local as RPID regardless of how we connect
-    // This temporary workaround resolves iOS Simulator DNS issues while maintaining
-    // the same RPID for true cross-platform passkey sharing
+    // ngrok-based cross-platform passkey configuration
+    // Automatically detects ngrok tunnel or falls back to localhost
     
     private let baseURL: String = {
-        #if targetEnvironment(simulator)
-        // iOS Simulator: Use HTTPS localhost with custom session to ignore cert issues
-        return "https://localhost:8080/api"
-        #else
-        // Physical device: Use the proper HTTPS domain
-        return "https://passkey-demo.local:8080/api"
-        #endif
+        // Check for ngrok URL in app configuration
+        if let ngrokURL = APIConfiguration.ngrokURL {
+            return "\(ngrokURL)/api"
+        }
+        
+        // Fallback to localhost for development
+        return "http://localhost:8080/api"
     }()
     
     private let session: URLSession
+    
     
     init() {
         let config = URLSessionConfiguration.default
         config.httpCookieAcceptPolicy = .always
         config.httpShouldSetCookies = true
         
-        #if targetEnvironment(simulator)
-        // For iOS Simulator: Create session that ignores certificate validation for localhost
+        // For development: Create session that accepts development certificates
+        // ngrok provides trusted certificates, but we keep support for localhost development
         self.session = URLSession(
             configuration: config,
-            delegate: LocalhostCertificateDelegate(),
+            delegate: DevelopmentCertificateDelegate(),
             delegateQueue: nil
         )
-        #else
-        // For physical devices: Use standard session
-        self.session = URLSession(configuration: config)
-        #endif
     }
     
     // MARK: - Generic Request Method
@@ -95,7 +118,8 @@ class APIService: ObservableObject {
     
     func beginRegistration(username: String, displayName: String) async throws -> RegistrationOptions {
         let request = RegistrationRequest(username: username, displayName: displayName)
-        return try await makeRequest(endpoint: "/register/begin", method: .POST, body: request)
+        let response: RegistrationOptionsResponse = try await makeRequest(endpoint: "/register/begin", method: .POST, body: request)
+        return response.publicKey
     }
     
     func finishRegistration(credential: RegistrationCredential) async throws -> RegistrationResult {
@@ -106,7 +130,8 @@ class APIService: ObservableObject {
     
     func beginAuthentication(username: String? = nil) async throws -> AuthenticationOptions {
         let request = AuthenticationRequest(username: username)
-        return try await makeRequest(endpoint: "/login/begin", method: .POST, body: request)
+        let response: AuthenticationOptionsResponse = try await makeRequest(endpoint: "/login/begin", method: .POST, body: request)
+        return response.publicKey
     }
     
     func finishAuthentication(credential: AuthenticationCredential) async throws -> AuthenticationResult {
@@ -134,6 +159,19 @@ class APIService: ObservableObject {
     
     func healthCheck() async throws -> HealthResponse {
         return try await makeRequest(endpoint: "/health", method: .GET)
+    }
+    
+    // MARK: - Configuration
+    
+    /// Set ngrok URL for development
+    func setNgrokURL(_ url: String) {
+        UserDefaults.standard.set(url, forKey: "NGROK_URL")
+        print("🔧 ngrok URL set to: \(url)")
+    }
+    
+    /// Get current API base URL for debugging
+    func getCurrentBaseURL() -> String {
+        return baseURL
     }
 }
 
@@ -198,25 +236,76 @@ extension String {
 
 // MARK: - Development Certificate Delegate
 
-#if targetEnvironment(simulator)
-class LocalhostCertificateDelegate: NSObject, URLSessionDelegate {
+class DevelopmentCertificateDelegate: NSObject, URLSessionDelegate {
     func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
-        // Only bypass certificate validation for localhost in simulator
-        if challenge.protectionSpace.host == "localhost" {
-            // Accept the server certificate for localhost in development
-            if let serverTrust = challenge.protectionSpace.serverTrust {
-                let credential = URLCredential(trust: serverTrust)
-                completionHandler(.useCredential, credential)
+        print("🔒 Certificate challenge for host: \(challenge.protectionSpace.host)")
+        print("🔒 Authentication method: \(challenge.protectionSpace.authenticationMethod)")
+        
+        // Accept certificates for localhost development only
+        // ngrok domains use trusted certificates and don't need custom handling
+        let developmentHosts = ["localhost", "127.0.0.1"]
+        
+        if developmentHosts.contains(challenge.protectionSpace.host) {
+            print("🔒 Accepting development certificate for: \(challenge.protectionSpace.host)")
+            
+            // Check if this is a server trust challenge
+            guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust else {
+                print("❌ Not a server trust challenge, method: \(challenge.protectionSpace.authenticationMethod)")
+                completionHandler(.performDefaultHandling, nil)
                 return
             }
+            
+            // Get server trust
+            guard let serverTrust = challenge.protectionSpace.serverTrust else {
+                print("❌ No server trust found")
+                completionHandler(.performDefaultHandling, nil)
+                return
+            }
+            
+            // For development: Evaluate and accept the certificate
+            // First, try to evaluate the trust normally using modern API
+            var error: CFError?
+            let isValid = SecTrustEvaluateWithError(serverTrust, &error)
+            
+            if isValid {
+                print("🔒 Trust evaluation: Certificate is valid")
+            } else if let error = error {
+                let errorDescription = CFErrorCopyDescription(error) as String
+                print("🔒 Trust evaluation failed: \(errorDescription)")
+            } else {
+                print("🔒 Trust evaluation failed: Unknown error")
+            }
+            
+            // For development, accept the certificate regardless of evaluation result
+            // This is safe for localhost development certificates
+            let credential = URLCredential(trust: serverTrust)
+            print("✅ Accepting localhost certificate for development (bypassing validation)")
+            
+            // Use the credential and tell iOS to accept it
+            completionHandler(.useCredential, credential)
+            return
         }
         
         // For all other hosts, use default handling
+        print("🔒 Using default handling for host: \(challenge.protectionSpace.host)")
         completionHandler(.performDefaultHandling, nil)
     }
+    
+    // Additional delegate method for more granular control
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        print("🔒 Task-level certificate challenge for: \(challenge.protectionSpace.host)")
+        
+        // Delegate to the session-level method
+        self.urlSession(session, didReceive: challenge, completionHandler: completionHandler)
+    }
 }
-#endif
+

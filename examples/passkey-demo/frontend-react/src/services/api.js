@@ -1,8 +1,20 @@
-// Use local domain for cross-platform WebAuthn compatibility
-// This enables passkey sharing across web, iOS, and Android platforms
-// Auto-detect protocol based on current page (HTTPS preferred)
-const isHTTPS = window.location.protocol === 'https:';
-const API_BASE = `${isHTTPS ? 'https' : 'http'}://passkey-demo.local:8080/api`;
+// ngrok-based WebAuthn cross-platform configuration
+// Get API base URL from environment variable or use development default
+const getApiBaseUrl = () => {
+  // Check for ngrok URL in environment (injected by Vite)
+  const ngrokUrl = import.meta.env.VITE_NGROK_URL;
+  
+  if (ngrokUrl) {
+    // Use ngrok tunnel URL
+    return `${ngrokUrl}/api`;
+  }
+  
+  // Fallback to localhost for local development
+  const isHTTPS = window.location.protocol === 'https:';
+  return `${isHTTPS ? 'https' : 'http'}://localhost:8080/api`;
+};
+
+const API_BASE = getApiBaseUrl();
 
 // Helper function to handle API responses
 async function handleResponse(response) {
@@ -74,7 +86,7 @@ export const logout = async () => {
   });
 };
 
-// Protected profile API
+// Protected profile API  
 export const getUserProfile = async (username) => {
   try {
     const response = await fetch(`${API_BASE}/user/${username}/profile`, {

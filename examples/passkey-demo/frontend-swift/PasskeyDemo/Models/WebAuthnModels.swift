@@ -7,6 +7,11 @@ struct RegistrationRequest: Codable {
     let displayName: String
 }
 
+// Backend response wrapper - matches actual API response
+struct RegistrationOptionsResponse: Codable {
+    let publicKey: RegistrationOptions
+}
+
 struct RegistrationOptions: Codable {
     let challenge: String
     let rp: RelyingParty
@@ -64,6 +69,11 @@ struct RegistrationCredential: Codable {
 
 struct AuthenticationRequest: Codable {
     let username: String?
+}
+
+// Backend response wrapper - matches actual API response
+struct AuthenticationOptionsResponse: Codable {
+    let publicKey: AuthenticationOptions
 }
 
 struct AuthenticationOptions: Codable {

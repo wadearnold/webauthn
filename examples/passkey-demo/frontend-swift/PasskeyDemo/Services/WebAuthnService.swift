@@ -34,9 +34,9 @@ class WebAuthnService: NSObject, ObservableObject {
             print("User ID: \(options.user.id)")
             
             // Step 2: Create platform authenticator request
-            // CRITICAL: Always use passkey-demo.local as RPID for cross-platform compatibility
-            // Even if connecting via localhost, the RPID must match the web frontend
-            let rpid = "passkey-demo.local" // Force consistent RPID across platforms
+            // Use the RPID from server response for proper WebAuthn compliance
+            // In development, we'll use passkey-demo.local with proper setup
+            let rpid = options.rp.id
             let platformProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(
                 relyingPartyIdentifier: rpid
             )
@@ -114,8 +114,9 @@ class WebAuthnService: NSObject, ObservableObject {
             print("RPID: \(options.rpId ?? "nil")")
             
             // Step 2: Create platform authenticator request
-            // CRITICAL: Always use passkey-demo.local as RPID for cross-platform compatibility
-            let rpid = "passkey-demo.local" // Force consistent RPID across platforms
+            // Use the RPID from server response for proper WebAuthn compliance
+            // In development, we'll use passkey.localdemo with proper setup
+            let rpid = options.rpId ?? "passkey.localdemo"
             let platformProvider = ASAuthorizationPlatformPublicKeyCredentialProvider(
                 relyingPartyIdentifier: rpid
             )
@@ -127,11 +128,11 @@ class WebAuthnService: NSObject, ObservableObject {
             let assertionRequest = platformProvider.createCredentialAssertionRequest(challenge: challengeData)
             
             // Configure user verification
-            assertionRequest.userVerificationPreference = .preferred
+            assertionRequest.userVerificationPreference = ASAuthorizationPublicKeyCredentialUserVerificationPreference.preferred
             
             // Set allowed credentials if provided (username-based auth)
             if let allowedCredentials = options.allowCredentials {
-                assertionRequest.allowedCredentials = allowedCredentials.compactMap { cred in
+                assertionRequest.allowedCredentials = allowedCredentials.compactMap { cred -> ASAuthorizationPlatformPublicKeyCredentialDescriptor? in
                     guard let credentialIdData = cred.id.base64URLDecode() else { return nil }
                     return ASAuthorizationPlatformPublicKeyCredentialDescriptor(credentialID: credentialIdData)
                 }

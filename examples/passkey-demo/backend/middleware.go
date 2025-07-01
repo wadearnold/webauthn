@@ -2,37 +2,27 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"strings"
 )
 
-// CORS middleware for multi-platform development
+// CORS middleware for multi-platform development with ngrok
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Allow requests from multiple frontend platforms
-		// React dev server, iOS simulator, Android emulator, etc.
 		origin := r.Header.Get("Origin")
+		
+		// Get ngrok URL from environment
+		ngrokURL := os.Getenv("NGROK_URL")
+		
 		allowedOrigins := []string{
-			// HTTPS origins (preferred for production-like testing)
-			"https://passkey-demo.local:5173", // React frontend (HTTPS)
-			"https://passkey-demo.local:3000", // Alternative React port (HTTPS)
-			"https://passkey-demo.local:8080", // API server access (HTTPS)
-			"https://localhost:5173",          // Localhost (HTTPS)
-			"https://localhost:3000",          // Alternative localhost port (HTTPS)
-			"https://localhost:8080",          // Backend API localhost access (HTTPS)
-			// iOS Simulator/Device access (add your Mac's IP here)
-			"https://192.168.1.100:8080",     // Example IP - replace with your Mac's IP
-			"http://192.168.1.100:8080",      // HTTP fallback for IP access
-			// HTTP origins (fallback for development)
-			"http://passkey-demo.local:5173",  // React frontend (HTTP)
-			"http://passkey-demo.local:3000",  // Alternative React port (HTTP)
-			"http://passkey-demo.local:8080",  // API server access (HTTP)
-			"http://localhost:5173",           // Localhost (HTTP)
-			"http://localhost:3000",           // Alternative localhost port (HTTP)
-			"http://localhost:8080",           // Backend API localhost access (HTTP)
-			// Mobile app origins
-			"capacitor://passkey-demo.local",  // Capacitor hybrid apps
-			"ionic://passkey-demo.local",     // Ionic hybrid apps
-			"capacitor://localhost",
-			"ionic://localhost",
+			// Local development
+			"http://localhost:3000",          // React dev server
+			"http://localhost:5173",          // Vite dev server
+			"https://localhost:3000",         // React dev server HTTPS
+			"https://localhost:5173",         // Vite dev server HTTPS
+			// ngrok tunnel (dynamic)
+			ngrokURL,                         // Main ngrok URL
 		}
 		
 		// Check if origin is allowed
@@ -44,12 +34,23 @@ func corsMiddleware(next http.Handler) http.Handler {
 			}
 		}
 		
+		// Also allow any ngrok.io domain for flexibility
+		if !originAllowed && origin != "" {
+			if strings.Contains(origin, ".ngrok.io") || 
+			   strings.Contains(origin, "localhost") {
+				originAllowed = true
+			}
+		}
+		
 		if originAllowed {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		} else {
-			// Default to HTTPS local domain for cross-platform compatibility
-			// Fall back to HTTP if HTTPS not available
-			w.Header().Set("Access-Control-Allow-Origin", "https://passkey-demo.local:5173")
+			// Default to ngrok URL
+			if ngrokURL != "" {
+				w.Header().Set("Access-Control-Allow-Origin", ngrokURL)
+			} else {
+				w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			}
 		}
 		
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -66,10 +67,13 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// JSON middleware sets content type
+// JSON middleware sets content type for API routes only
 func jsonMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		// Only set JSON content type for API routes
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			w.Header().Set("Content-Type", "application/json")
+		}
 		next.ServeHTTP(w, r)
 	})
 }
