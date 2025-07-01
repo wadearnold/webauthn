@@ -6,21 +6,27 @@ import Security
 struct APIConfiguration {
     /// Detect ngrok URL from various sources
     static var ngrokURL: String? {
-        // 1. Check UserDefaults first (set by configuration script)
+        // 1. Check project .env file first (most reliable for development)
+        if let envFileURL = getProjectEnvFile() {
+            print("🔧 Using ngrok URL from project .env: \(envFileURL)")
+            return envFileURL
+        }
+        
+        // 2. Check UserDefaults (set by configuration script)
         if let storedURL = UserDefaults.standard.string(forKey: "NGROK_URL"),
            !storedURL.isEmpty && storedURL != "$(NGROK_URL)" {
             print("🔧 Using ngrok URL from UserDefaults: \(storedURL)")
             return storedURL
         }
         
-        // 2. Check Info.plist for ngrok URL (can be set via build settings)
+        // 3. Check Info.plist for ngrok URL (can be set via build settings)
         if let plistURL = Bundle.main.object(forInfoDictionaryKey: "NGROK_URL") as? String,
            !plistURL.isEmpty && plistURL != "$(NGROK_URL)" {
             print("🔧 Using ngrok URL from Info.plist: \(plistURL)")
             return plistURL
         }
         
-        // 3. Check environment variables (if available in development)
+        // 4. Check environment variables (if available in development)
         if let envURL = ProcessInfo.processInfo.environment["NGROK_URL"],
            !envURL.isEmpty {
             print("🔧 Using ngrok URL from environment: \(envURL)")
@@ -28,6 +34,59 @@ struct APIConfiguration {
         }
         
         print("⚠️ No ngrok URL found, falling back to localhost")
+        return nil
+    }
+    
+    /// Read ngrok URL from project .env file (most reliable for development)
+    private static func getProjectEnvFile() -> String? {
+        // Try to find the .env file in the project structure
+        // Look for: ../../.env relative to app bundle
+        let possiblePaths = [
+            // Development paths (when running from Xcode)
+            "../../../.env",  // From app bundle to project root
+            "../../.env",     // Alternative path
+            "../.env",        // Another alternative
+            // Absolute path attempt (common location)
+            "/Users/\(NSUserName())/Documents/GitHub/wadearnold/webauthn/examples/passkey-demo/.env"
+        ]
+        
+        for relativePath in possiblePaths {
+            if let bundlePath = Bundle.main.bundlePath as NSString?,
+               let envPath = bundlePath.appendingPathComponent(relativePath) as String? {
+                if FileManager.default.fileExists(atPath: envPath) {
+                    return readNgrokURLFromEnvFile(path: envPath)
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Parse NGROK_URL from .env file
+    private static func readNgrokURLFromEnvFile(path: String) -> String? {
+        guard let content = try? String(contentsOfFile: path) else {
+            return nil
+        }
+        
+        // Look for NGROK_URL=https://... (with or without export prefix)
+        let lines = content.components(separatedBy: .newlines)
+        for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+            
+            // Handle both "NGROK_URL=" and "export NGROK_URL=" formats
+            if trimmedLine.hasPrefix("export NGROK_URL=") {
+                let url = String(trimmedLine.dropFirst("export NGROK_URL=".count))
+                if !url.isEmpty && url != "https://your-tunnel.ngrok.io" {
+                    return url
+                }
+            } else if trimmedLine.hasPrefix("NGROK_URL=") {
+                let url = String(trimmedLine.dropFirst("NGROK_URL=".count))
+                if !url.isEmpty && url != "https://your-tunnel.ngrok.io" {
+                    return url
+                }
+            }
+        }
+        
         return nil
     }
 }

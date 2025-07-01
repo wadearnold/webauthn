@@ -23,11 +23,19 @@ fi
 
 echo "🔧 Configuring iOS app with ngrok URL: $NGROK_URL"
 
-# Set the ngrok URL in iOS app using defaults (simulates setting in Info.plist)
+# Set the ngrok URL in iOS app using defaults for both device and simulator
 # This will be picked up by the APIConfiguration.ngrokURL
+
+# For device/production bundle ID
 defaults write com.passkey.demo.ios NGROK_URL "$NGROK_URL"
 
-echo "✅ iOS app configured with ngrok URL"
+# For common simulator bundle IDs (Xcode may use different bundle IDs in simulator)
+defaults write FAKETEAMID.com.passkey.demo.ios NGROK_URL "$NGROK_URL"
+
+# Also set in global defaults as fallback
+defaults write -g NGROK_URL "$NGROK_URL"
+
+echo "✅ iOS app configured with ngrok URL for device and simulator"
 echo "🏃‍♂️ Now build and run the iOS app to use the ngrok tunnel"
 echo ""
 echo "Note: If running in Xcode, you may need to clean and rebuild the project"
