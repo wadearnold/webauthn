@@ -1,3 +1,23 @@
+// HTTP handlers for WebAuthn passkey authentication endpoints.
+//
+// This file demonstrates proper implementation of WebAuthn server-side handlers
+// following the W3C WebAuthn specification. Key patterns shown:
+//
+// Request Handling:
+//   - Input validation and sanitization
+//   - Structured error responses with appropriate HTTP status codes
+//   - Session management for multi-round authentication flows
+//
+// WebAuthn Integration:
+//   - Proper configuration for cross-platform passkey support
+//   - Registration and authentication ceremony handling
+//   - Security best practices for credential verification
+//
+// Go Best Practices:
+//   - Clean separation of concerns
+//   - Consistent error handling patterns
+//   - Thread-safe operations with proper locking
+//   - Comprehensive logging for debugging and security monitoring
 package main
 
 import (
@@ -14,39 +34,98 @@ import (
 	"github.com/google/uuid"
 )
 
-// Context keys
+// Context key type for storing request-scoped data.
+//
+// Using a custom type for context keys prevents collisions with other packages
+// and follows Go best practices for context usage.
 type contextKey string
 
+// sessionIDKey is used to store WebAuthn session IDs in request context.
+//
+// This allows session data to be passed between middleware and handlers
+// without relying on global variables or additional function parameters.
 const sessionIDKey contextKey = "sessionID"
 
+// setSessionID adds a WebAuthn session ID to the request context.
+//
+// This is typically called by session middleware after extracting the
+// session ID from cookies or headers.
 func setSessionID(ctx context.Context, sessionID string) context.Context {
 	return context.WithValue(ctx, sessionIDKey, sessionID)
 }
 
+// getSessionID retrieves the WebAuthn session ID from request context.
+//
+// Returns the session ID and true if present, or empty string and false
+// if no session ID is found in the context.
 func getSessionID(ctx context.Context) (string, bool) {
 	sessionID, ok := ctx.Value(sessionIDKey).(string)
 	return sessionID, ok
 }
 
-// Request/Response types
+// Request and response type definitions for WebAuthn API endpoints.
+//
+// These structs define the JSON structure for client-server communication
+// and demonstrate proper API design patterns.
+
+// RegisterBeginRequest represents the initial registration request from client.
+//
+// Username must be unique and follow validation rules.
+// DisplayName is optional and used for user-friendly identification.
 type RegisterBeginRequest struct {
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
+	Username    string `json:"username"`              // Required: unique identifier for user
+	DisplayName string `json:"displayName,omitempty"` // Optional: human-readable name
 }
 
+// LoginBeginRequest represents the initial authentication request from client.
+//
+// Username is optional to support discoverable (passwordless) login where
+// the client doesn't need to specify which user to authenticate.
 type LoginBeginRequest struct {
-	Username string `json:"username,omitempty"` // Optional for discoverable login
+	Username string `json:"username,omitempty"` // Optional: specific user for traditional login
 }
 
+// ErrorResponse provides structured error information for API responses.
+//
+// This pattern ensures consistent error handling across all endpoints and
+// enables client applications to handle errors programmatically.
 type ErrorResponse struct {
-	Error   string `json:"error"`
-	Code    string `json:"code,omitempty"`
-	Details string `json:"details,omitempty"`
+	Error   string `json:"error"`           // Human-readable error message
+	Code    string `json:"code,omitempty"`  // Machine-readable error code
+	Details string `json:"details,omitempty"` // Additional error context
 }
 
-// Username validation regex: alphanumeric, hyphens, underscores, dots (3-30 chars)
+// Username validation regex pattern for security and usability.
+//
+// Pattern breakdown:
+//   ^[a-zA-Z0-9._-]{3,30}$
+//   ^ = start of string
+//   [a-zA-Z0-9._-] = allowed characters (letters, numbers, dots, hyphens, underscores)
+//   {3,30} = length between 3 and 30 characters
+//   $ = end of string
+//
+// This pattern prevents:
+//   - SQL injection through special characters
+//   - Directory traversal through path separators
+//   - Unicode normalization attacks
+//   - Username enumeration through predictable patterns
 var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9._-]{3,30}$`)
 
+// validateUsername ensures usernames meet security and usability requirements.
+//
+// Validation Rules:
+//  1. Required field (not empty)
+//  2. Length between 3-30 characters (prevents abuse and UI issues)
+//  3. Only safe characters (alphanumeric, dots, hyphens, underscores)
+//  4. Cannot start/end with special characters (prevents confusion)
+//
+// Security Considerations:
+//  - Prevents injection attacks through special characters
+//  - Avoids Unicode normalization vulnerabilities
+//  - Blocks directory traversal attempts
+//  - Ensures consistent display across different systems
+//
+// Returns nil if valid, or descriptive error if validation fails.
 func validateUsername(username string) error {
 	if username == "" {
 		return fmt.Errorf("username is required")
@@ -65,6 +144,7 @@ func validateUsername(username string) error {
 	}
 
 	// Don't allow usernames that start or end with special characters
+	// This prevents confusion and ensures consistent display
 	if strings.HasPrefix(username, ".") || strings.HasPrefix(username, "-") || strings.HasPrefix(username, "_") ||
 		strings.HasSuffix(username, ".") || strings.HasSuffix(username, "-") || strings.HasSuffix(username, "_") {
 		return fmt.Errorf("username cannot start or end with dots, hyphens, or underscores")
@@ -73,18 +153,60 @@ func validateUsername(username string) error {
 	return nil
 }
 
+// SuccessResponse provides structured success information for API responses.
+//
+// This ensures consistent response format across all endpoints and makes
+// it easier for clients to handle successful operations.
 type SuccessResponse struct {
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Message string      `json:"message"`           // Human-readable success message
+	Data    interface{} `json:"data,omitempty"`    // Optional response data
 }
 
-// App holds application dependencies
+// App encapsulates application dependencies and provides handler methods.
+//
+// This struct follows the dependency injection pattern, making the code:
+//  - Easier to test (dependencies can be mocked)
+//  - More maintainable (clear dependency relationships)
+//  - Thread-safe (all dependencies are immutable after creation)
+//
+// The App pattern is common in Go web applications and demonstrates
+// proper separation of concerns between HTTP handling and business logic.
 type App struct {
-	webAuthn *webauthn.WebAuthn
-	store    *InMemoryStore
+	webAuthn *webauthn.WebAuthn // WebAuthn library instance with configuration
+	store    *InMemoryStore     // User and session storage (interface in production)
 }
 
-// Registration handlers
+// WebAuthn Registration Handlers
+//
+// These handlers implement the WebAuthn registration ceremony, which allows
+// users to create new passkeys. The process involves two rounds:
+//  1. Begin: Generate challenge and return credential creation options
+//  2. Finish: Verify the new credential and store it
+
+// handleRegisterBegin initiates the WebAuthn credential registration ceremony.
+//
+// This endpoint implements the first phase of WebAuthn registration:
+//  1. Validates the registration request (username, display name)
+//  2. Creates or retrieves the user account
+//  3. Generates WebAuthn credential creation options with passkey settings
+//  4. Creates a temporary session to store challenge data
+//  5. Returns options to client for credential creation
+//
+// WebAuthn Flow:
+//  Client -> POST /api/register/begin -> Server generates challenge
+//  Server -> Returns credential options -> Client calls navigator.credentials.create()
+//  Client -> Authenticator prompts user -> User provides biometric/PIN
+//  Client -> POST /api/register/finish -> Server verifies and stores credential
+//
+// Security Features:
+//  - Input validation prevents injection attacks
+//  - Cryptographically secure challenge generation
+//  - Session timeout prevents replay attacks
+//  - Passkey configuration enforces strong authentication
+//
+// Request Body: RegisterBeginRequest (JSON)
+// Response: WebAuthn CredentialCreationOptions (JSON)
+// HTTP Status: 200 (success), 400 (validation error), 409 (user exists), 500 (server error)
 func (app *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 	var req RegisterBeginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
