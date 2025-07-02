@@ -88,17 +88,40 @@ cd ../backend && go run .
 ```
 
 #### 🌐 Cross-Platform Mode (Recommended for Testing)
+
+**Option 1: Manual Configuration**  
 ```bash
 # 1. Start ngrok tunnel
 cd .. && ./scripts/start-ngrok.sh
 
-# 2. Configure iOS app with ngrok URL
+# 2. Copy template and edit with your ngrok URL:
+cp PasskeyDemo/ngrok-config.json.template PasskeyDemo/ngrok-config.json
+# Edit ngrok-config.json and replace with your actual ngrok URL from step 1
+
+# 3. Start backend with ngrok
+cd ../backend && source ../.env && go run .
+
+# 4. Build and run iOS app in Xcode
+```
+
+**Option 2: Automatic Configuration**  
+```bash
+# 1. Start ngrok tunnel
+cd .. && ./scripts/start-ngrok.sh
+
+# 2. Configure iOS app automatically
 ./set-ngrok-url.sh
 
 # 3. Start backend with ngrok
 cd ../backend && source ../.env && go run .
 
-# 4. Clean and rebuild iOS app in Xcode
+# 4. Build and run iOS app in Xcode
+```
+
+**Verify Configuration**  
+```bash
+# Check if your iOS app is properly configured
+./check-config.sh
 ```
 
 **✅ Cross-Platform Benefits:**
@@ -195,15 +218,16 @@ with domain 67e9-76-154-22-254.ngrok-free.app
 
 **Solution**:
 ```bash
-# 1. Configure iOS app with current ngrok URL
+# 1. Configure iOS app with current ngrok URL (choose one)
 ./set-ngrok-url.sh
+# OR manually edit PasskeyDemo/ngrok-config.json
 
 # 2. Clean and rebuild in Xcode
-# Product → Clean Build Folder
+# Product → Clean Build Folder  
 # Product → Build and Run
 
 # 3. Verify configuration in Xcode debug console:
-# Should see: "🌐 iOS App configured for cross-platform mode"
+# Should see: "🔧 Using ngrok URL from config: https://..."
 ```
 
 ### Passkeys Created in Safari Don't Work in iOS App
@@ -211,24 +235,28 @@ with domain 67e9-76-154-22-254.ngrok-free.app
 **Cause**: Different RPIDs being used between Safari and iOS app
 
 **Solution**: Ensure both use the same ngrok domain:
-1. ✅ **Safari**: Uses ngrok URL automatically
-2. ✅ **iOS App**: Must be configured with `./set-ngrok-url.sh`
+1. ✅ **Safari**: Uses ngrok URL automatically  
+2. ✅ **iOS App**: Configure with `./set-ngrok-url.sh` or manually edit config file
 3. ✅ **Backend**: Uses ngrok RPID when `NGROK_URL` environment variable is set
 
 ### iOS App Uses Localhost Instead of ngrok
 
-**Check current configuration**:
-```swift
-// Add this to your view for debugging:
-Text(APIService.shared.getConfigurationStatus())
+**Quick Fix**: Edit `PasskeyDemo/ngrok-config.json`:
+```json
+{"ngrok_url": "https://your-actual-ngrok-url.ngrok-free.app"}
 ```
 
-**Expected output for cross-platform mode**:
+**Verify Configuration**: Run `./check-config.sh` to check your setup
+
+**Check in Xcode Console**: Look for these startup messages:
 ```
+🚀 PasskeyDemo iOS App Starting...
 🔧 iOS App Configuration:
 Mode: Cross-Platform (ngrok)
-Base URL: https://67e9-76-154-22-254.ngrok-free.app/api
+Base URL: https://67e9-76-154-22-254.ngrok-free.app/api  
 Ngrok URL: https://67e9-76-154-22-254.ngrok-free.app
+Status: ✅ Ready for cross-platform passkey sharing
+📱 Ready for cross-platform passkey authentication
 ```
 
 ## 📚 Resources

@@ -4,87 +4,46 @@ import Security
 // MARK: - API Configuration
 
 struct APIConfiguration {
-    /// Detect ngrok URL from various sources
+    /// Detect ngrok URL from bundled config file
     static var ngrokURL: String? {
-        // 1. Check project .env file first (most reliable for development)
-        if let envFileURL = getProjectEnvFile() {
-            print("🔧 Using ngrok URL from project .env: \(envFileURL)")
-            return envFileURL
+        // Read from bundled config file (simple and reliable)
+        if let bundledURL = getBundledNgrokURL() {
+            print("🔧 Using ngrok URL from config: \(bundledURL)")
+            return bundledURL
         }
         
-        // 2. Check UserDefaults (set by configuration script)
-        if let storedURL = UserDefaults.standard.string(forKey: "NGROK_URL"),
-           !storedURL.isEmpty && storedURL != "$(NGROK_URL)" {
-            print("🔧 Using ngrok URL from UserDefaults: \(storedURL)")
-            return storedURL
-        }
-        
-        // 3. Check Info.plist for ngrok URL (can be set via build settings)
-        if let plistURL = Bundle.main.object(forInfoDictionaryKey: "NGROK_URL") as? String,
-           !plistURL.isEmpty && plistURL != "$(NGROK_URL)" {
-            print("🔧 Using ngrok URL from Info.plist: \(plistURL)")
-            return plistURL
-        }
-        
-        // 4. Check environment variables (if available in development)
-        if let envURL = ProcessInfo.processInfo.environment["NGROK_URL"],
-           !envURL.isEmpty {
-            print("🔧 Using ngrok URL from environment: \(envURL)")
-            return envURL
-        }
-        
-        print("⚠️ No ngrok URL found, falling back to localhost")
+        print("⚠️ No ngrok URL found in config file, using localhost mode")
         return nil
     }
     
-    /// Read ngrok URL from project .env file (most reliable for development)
-    private static func getProjectEnvFile() -> String? {
-        // Try to find the .env file in the project structure
-        // Look for: ../../.env relative to app bundle
-        let possiblePaths = [
-            // Development paths (when running from Xcode)
-            "../../../.env",  // From app bundle to project root
-            "../../.env",     // Alternative path
-            "../.env",        // Another alternative
-            // Absolute path attempt (common location)
-            "/Users/\(NSUserName())/Documents/GitHub/wadearnold/webauthn/examples/passkey-demo/.env"
-        ]
-        
-        for relativePath in possiblePaths {
-            if let bundlePath = Bundle.main.bundlePath as NSString?,
-               let envPath = bundlePath.appendingPathComponent(relativePath) as String? {
-                if FileManager.default.fileExists(atPath: envPath) {
-                    return readNgrokURLFromEnvFile(path: envPath)
-                }
-            }
-        }
-        
-        return nil
-    }
-    
-    /// Parse NGROK_URL from .env file
-    private static func readNgrokURLFromEnvFile(path: String) -> String? {
-        guard let content = try? String(contentsOfFile: path) else {
+    /// Read ngrok URL from bundled config file (most reliable)
+    private static func getBundledNgrokURL() -> String? {
+        guard let path = Bundle.main.path(forResource: "ngrok-config", ofType: "json") else {
+            print("🔍 No ngrok-config.json found in app bundle")
+            print("💡 To enable cross-platform mode:")
+            print("   1. Copy: cp PasskeyDemo/ngrok-config.json.template PasskeyDemo/ngrok-config.json")
+            print("   2. Edit ngrok-config.json with your ngrok URL")
+            print("   3. Rebuild the app")
             return nil
         }
         
-        // Look for NGROK_URL=https://... (with or without export prefix)
-        let lines = content.components(separatedBy: .newlines)
-        for line in lines {
-            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-            
-            // Handle both "NGROK_URL=" and "export NGROK_URL=" formats
-            if trimmedLine.hasPrefix("export NGROK_URL=") {
-                let url = String(trimmedLine.dropFirst("export NGROK_URL=".count))
-                if !url.isEmpty && url != "https://your-tunnel.ngrok.io" {
-                    return url
-                }
-            } else if trimmedLine.hasPrefix("NGROK_URL=") {
-                let url = String(trimmedLine.dropFirst("NGROK_URL=".count))
-                if !url.isEmpty && url != "https://your-tunnel.ngrok.io" {
-                    return url
-                }
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+            print("⚠️ Could not read ngrok-config.json from app bundle")
+            return nil
+        }
+        
+        do {
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let ngrokURL = json["ngrok_url"] as? String,
+               !ngrokURL.isEmpty && ngrokURL != "https://your-ngrok-url.ngrok-free.app" {
+                print("✅ Found valid ngrok URL in config: \(ngrokURL)")
+                return ngrokURL
+            } else {
+                print("⚠️ ngrok-config.json contains placeholder or empty URL")
+                print("💡 Edit PasskeyDemo/ngrok-config.json with your actual ngrok URL")
             }
+        } catch {
+            print("⚠️ Error parsing ngrok-config.json: \(error)")
         }
         
         return nil
@@ -227,14 +186,6 @@ class APIService: ObservableObject {
         return try await makeRequest(endpoint: "/health", method: .GET)
     }
     
-    // MARK: - Configuration
-    
-    /// Set ngrok URL for development
-    func setNgrokURL(_ url: String) {
-        UserDefaults.standard.set(url, forKey: "NGROK_URL")
-        print("🔧 ngrok URL set to: \(url)")
-    }
-    
     /// Get current API base URL for debugging
     func getCurrentBaseURL() -> String {
         return baseURL
@@ -244,12 +195,24 @@ class APIService: ObservableObject {
     func getConfigurationStatus() -> String {
         let ngrokURL = APIConfiguration.ngrokURL
         let mode = ngrokURL != nil ? "Cross-Platform (ngrok)" : "Local Development"
-        return """
-        🔧 iOS App Configuration:
-        Mode: \(mode)
-        Base URL: \(baseURL)
-        Ngrok URL: \(ngrokURL ?? "Not configured")
-        """
+        
+        if let ngrokURL = ngrokURL {
+            return """
+            🔧 iOS App Configuration:
+            Mode: \(mode)
+            Base URL: \(baseURL)
+            Ngrok URL: \(ngrokURL)
+            Status: ✅ Ready for cross-platform passkey sharing
+            """
+        } else {
+            return """
+            🔧 iOS App Configuration:
+            Mode: \(mode)
+            Base URL: \(baseURL)
+            Ngrok URL: Not configured
+            Status: 🏠 Localhost mode - passkeys limited to this device
+            """
+        }
     }
 }
 

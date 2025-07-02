@@ -12,6 +12,7 @@
 		A10A1A2E2C8F8A8D00123456 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10A1A2D2C8F8A8D00123456 /* Assets.xcassets */; };
 		A10A1A312C8F8A8D00123456 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10A1A302C8F8A8D00123456 /* Preview Assets.xcassets */; };
 		A10A1A382C8F8B1C00123456 /* WebAuthnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A372C8F8B1C00123456 /* WebAuthnService.swift */; };
+		A10A1A502C8F8C1000123456 /* ngrok-config.json in Resources */ = {isa = PBXBuildFile; fileRef = A10A1A4F2C8F8C1000123456 /* ngrok-config.json */; };
 		A10A1A3A2C8F8B2A00123456 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A392C8F8B2A00123456 /* APIService.swift */; };
 		A10A1A3C2C8F8B3800123456 /* WebAuthnModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A3B2C8F8B3800123456 /* WebAuthnModels.swift */; };
 		A10A1A3E2C8F8B4600123456 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A3D2C8F8B4600123456 /* RegistrationView.swift */; };
@@ -32,6 +33,7 @@
 		A10A1A3F2C8F8B5400123456 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		A10A1A412C8F8B6200123456 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		A10A1A432C8F8B7000123456 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10A1A4F2C8F8C1000123456 /* ngrok-config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "ngrok-config.json"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +72,7 @@
 				A10A1A292C8F8A8B00123456 /* PasskeyDemoApp.swift */,
 				A10A1A2B2C8F8A8B00123456 /* ContentView.swift */,
 				A10A1A432C8F8B7000123456 /* Info.plist */,
+				A10A1A4F2C8F8C1000123456 /* ngrok-config.json */,
 				A10A1A2D2C8F8A8D00123456 /* Assets.xcassets */,
 				A10A1A2F2C8F8A8D00123456 /* Preview Content */,
 			);
@@ -171,6 +174,7 @@
 			files = (
 				A10A1A312C8F8A8D00123456 /* Preview Assets.xcassets in Resources */,
 				A10A1A2E2C8F8A8D00123456 /* Assets.xcassets in Resources */,
+				A10A1A502C8F8C1000123456 /* ngrok-config.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
