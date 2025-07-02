@@ -132,8 +132,9 @@ cd ../backend && source ../.env && go run .
 ### 4. Build and Run
 
 1. Select your target device (iOS 16+ required)
-2. Click **Build and Run** (⌘+R)
-3. Trust the developer certificate if prompted
+2. **For Simulator**: Enable Face ID via **Features** → **Face ID** → **Enrolled**
+3. Click **Build and Run** (⌘+R)
+4. Trust the developer certificate if prompted
 
 ## 📱 Usage Guide
 
@@ -188,6 +189,11 @@ cd ../backend && source ../.env && go run .
 - Limited biometric simulation
 - No actual keychain sync
 - Good for UI/UX testing
+
+**⚠️ REQUIRED: Enable Face ID in Simulator**
+1. In Xcode Simulator menu: **Features** → **Face ID** → **Enrolled**
+2. Without this, you'll see QR codes instead of biometric prompts
+3. Once enrolled, use **Face ID** → **Matching/Non-matching** to test
 
 ## 🔒 Security Features
 
