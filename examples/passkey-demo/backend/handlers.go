@@ -258,17 +258,17 @@ func (app *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Comprehensive registration debugging
-	fmt.Printf("=== REGISTRATION DEBUG INFO FOR %s ===\n", user.Username)
-	fmt.Printf("AuthenticatorAttachment: %s\n", options.Response.AuthenticatorSelection.AuthenticatorAttachment)
-	fmt.Printf("ResidentKey: %s\n", options.Response.AuthenticatorSelection.ResidentKey)
-	fmt.Printf("RequireResidentKey: %t\n", *options.Response.AuthenticatorSelection.RequireResidentKey)
-	fmt.Printf("UserVerification: %s\n", options.Response.AuthenticatorSelection.UserVerification)
-	fmt.Printf("Attestation: %s\n", options.Response.Attestation)
-	fmt.Printf("Timeout: %d ms\n", options.Response.Timeout)
-	fmt.Printf("RPID: %s\n", options.Response.RelyingParty.ID)
-	fmt.Printf("RPName: %s\n", options.Response.RelyingParty.Name)
-	fmt.Printf("Challenge: %s\n", options.Response.Challenge)
-	fmt.Printf("=========================================\n")
+	logger.Printf("=== REGISTRATION DEBUG INFO FOR %s ===", user.Username)
+	logger.Printf("AuthenticatorAttachment: %s", options.Response.AuthenticatorSelection.AuthenticatorAttachment)
+	logger.Printf("ResidentKey: %s", options.Response.AuthenticatorSelection.ResidentKey)
+	logger.Printf("RequireResidentKey: %t", *options.Response.AuthenticatorSelection.RequireResidentKey)
+	logger.Printf("UserVerification: %s", options.Response.AuthenticatorSelection.UserVerification)
+	logger.Printf("Attestation: %s", options.Response.Attestation)
+	logger.Printf("Timeout: %d ms", options.Response.Timeout)
+	logger.Printf("RPID: %s", options.Response.RelyingParty.ID)
+	logger.Printf("RPName: %s", options.Response.RelyingParty.Name)
+	logger.Printf("Challenge: %s", options.Response.Challenge)
+	logger.Printf("=========================================")
 
 	// Store session
 	sessionID := uuid.New().String()
@@ -380,15 +380,15 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 		)
 		
 		if err == nil {
-			fmt.Printf("=== TRADITIONAL LOGIN DEBUG INFO FOR %s ===\n", user.Username)
-			fmt.Printf("UserVerification: %s\n", options.Response.UserVerification)
-			fmt.Printf("Timeout: %d ms\n", options.Response.Timeout)
-			fmt.Printf("RPID: %s\n", options.Response.RelyingPartyID)
-			fmt.Printf("AllowCredentials count: %d\n", len(options.Response.AllowedCredentials))
+			logger.Printf("=== TRADITIONAL LOGIN DEBUG INFO FOR %s ===", user.Username)
+			logger.Printf("UserVerification: %s", options.Response.UserVerification)
+			logger.Printf("Timeout: %d ms", options.Response.Timeout)
+			logger.Printf("RPID: %s", options.Response.RelyingPartyID)
+			logger.Printf("AllowCredentials count: %d", len(options.Response.AllowedCredentials))
 			for i, cred := range options.Response.AllowedCredentials {
-				fmt.Printf("  Credential %d: ID=%s, Type=%s\n", i+1, base64.URLEncoding.EncodeToString(cred.CredentialID), cred.Type)
+				logger.Printf("  Credential %d: ID=%s, Type=%s", i+1, base64.URLEncoding.EncodeToString(cred.CredentialID), cred.Type)
 			}
-			fmt.Printf("============================================\n")
+			logger.Printf("============================================")
 		}
 		if err != nil {
 			app.writeError(w, fmt.Sprintf("Failed to begin login: %v", err), http.StatusInternalServerError)
@@ -418,13 +418,13 @@ func (app *App) handleLoginBegin(w http.ResponseWriter, r *http.Request) {
 		)
 		
 		if err == nil {
-			fmt.Printf("=== DISCOVERABLE LOGIN DEBUG INFO ===\n")
-			fmt.Printf("UserVerification: %s\n", options.Response.UserVerification)
-			fmt.Printf("Timeout: %d ms\n", options.Response.Timeout)
-			fmt.Printf("RPID: %s\n", options.Response.RelyingPartyID)
-			fmt.Printf("Challenge: %s\n", options.Response.Challenge)
-			fmt.Printf("AllowCredentials count: %d\n", len(options.Response.AllowedCredentials))
-			fmt.Printf("=====================================\n")
+			logger.Printf("=== DISCOVERABLE LOGIN DEBUG INFO ===")
+			logger.Printf("UserVerification: %s", options.Response.UserVerification)
+			logger.Printf("Timeout: %d ms", options.Response.Timeout)
+			logger.Printf("RPID: %s", options.Response.RelyingPartyID)
+			logger.Printf("Challenge: %s", options.Response.Challenge)
+			logger.Printf("AllowCredentials count: %d", len(options.Response.AllowedCredentials))
+			logger.Printf("=====================================")
 		}
 		if err != nil {
 			app.writeError(w, fmt.Sprintf("Failed to begin discoverable login: %v", err), http.StatusInternalServerError)

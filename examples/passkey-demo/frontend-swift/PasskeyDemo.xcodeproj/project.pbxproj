@@ -12,12 +12,12 @@
 		A10A1A2E2C8F8A8D00123456 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10A1A2D2C8F8A8D00123456 /* Assets.xcassets */; };
 		A10A1A312C8F8A8D00123456 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10A1A302C8F8A8D00123456 /* Preview Assets.xcassets */; };
 		A10A1A382C8F8B1C00123456 /* WebAuthnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A372C8F8B1C00123456 /* WebAuthnService.swift */; };
-		A10A1A502C8F8C1000123456 /* ngrok-config.json in Resources */ = {isa = PBXBuildFile; fileRef = A10A1A4F2C8F8C1000123456 /* ngrok-config.json */; };
 		A10A1A3A2C8F8B2A00123456 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A392C8F8B2A00123456 /* APIService.swift */; };
 		A10A1A3C2C8F8B3800123456 /* WebAuthnModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A3B2C8F8B3800123456 /* WebAuthnModels.swift */; };
 		A10A1A3E2C8F8B4600123456 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A3D2C8F8B4600123456 /* RegistrationView.swift */; };
 		A10A1A402C8F8B5400123456 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A3F2C8F8B5400123456 /* AuthenticationView.swift */; };
 		A10A1A422C8F8B6200123456 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10A1A412C8F8B6200123456 /* DashboardView.swift */; };
+		A10A1A502C8F8C1000123456 /* ngrok-config.json in Resources */ = {isa = PBXBuildFile; fileRef = A10A1A4F2C8F8C1000123456 /* ngrok-config.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -323,10 +323,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PasskeyDemo/PasskeyDemo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"PasskeyDemo/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 927BS6LD3W;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PasskeyDemo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -352,10 +353,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PasskeyDemo/PasskeyDemo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"PasskeyDemo/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 927BS6LD3W;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PasskeyDemo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

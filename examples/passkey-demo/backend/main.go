@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,11 +13,24 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
+// Global logger instance
+var logger = NewLogger("passkey-backend")
+
 func main() {
-	// Get ngrok URL from environment variable
-	ngrokURL := os.Getenv("NGROK_URL")
-	if ngrokURL == "" {
-		ngrokURL = "https://your-tunnel.ngrok.io" // Placeholder
+	// Parse command line flags
+	localhost := flag.Bool("localhost", false, "Force localhost mode (ignore NGROK_URL)")
+	flag.Parse()
+
+	// Get ngrok URL from environment variable or force localhost
+	var ngrokURL string
+	if *localhost {
+		ngrokURL = "https://your-tunnel.ngrok.io" // Force localhost mode
+		logger.Printf("🏠 Localhost mode forced via -localhost flag")
+	} else {
+		ngrokURL = os.Getenv("NGROK_URL")
+		if ngrokURL == "" {
+			ngrokURL = "https://your-tunnel.ngrok.io" // Placeholder
+		}
 	}
 	
 	// Extract domain from ngrok URL for RPID
@@ -150,7 +164,7 @@ func main() {
 	
 	// Apply middleware to API routes
 	apiHandler := corsMiddleware(
-		loggingMiddleware(
+		logger.LogHTTP(
 			app.sessionMiddleware(
 				jsonMiddleware(apiMux),
 			),
@@ -162,7 +176,7 @@ func main() {
 	
 	// Static files without middleware
 	mainMux.HandleFunc("/.well-known/apple-app-site-association", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("🍎 AASA file requested from: %s (User-Agent: %s)\n", r.RemoteAddr, r.UserAgent())
+		logger.Printf("🍎 AASA file requested from: %s (User-Agent: %s)", r.RemoteAddr, r.UserAgent())
 		w.Header().Set("Content-Type", "application/json")
 		http.ServeFile(w, r, "static/.well-known/apple-app-site-association")
 	})
@@ -182,7 +196,7 @@ func main() {
 		
 		// Catch-all: serve index.html for SPA routing
 		mainMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Printf("Serving HTML for: %s\n", r.URL.Path)
+			logger.Printf("Serving HTML for: %s", r.URL.Path)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			http.ServeFile(w, r, reactDistPath+"/index.html")
 		})

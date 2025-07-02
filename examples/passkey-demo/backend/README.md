@@ -92,8 +92,11 @@ type InMemoryStore struct {
 
 #### 1. Local Development (Fast Iteration)
 ```bash
-# Start backend without ngrok
-go run .
+# Build the backend
+go build -o passkey-backend .
+
+# Start in localhost mode
+./passkey-backend -localhost
 # RPID: localhost, Origin: http://localhost:*
 ```
 
@@ -107,11 +110,29 @@ cd ..
 
 # Terminal 2: Start backend with ngrok configuration
 cd backend
-source ../.env && go run .
+go build -o passkey-backend .
+source ../.env && ./passkey-backend
 # RPID: your-tunnel.ngrok.io, Origin: https://your-tunnel.ngrok.io
 ```
 
 **Use for**: iOS/Android testing, cross-platform passkey validation, production simulation
+
+#### Command Line Options
+
+- `-localhost`: Force localhost mode (ignores NGROK_URL environment variable)
+- `-h`: Show help and available flags
+
+Examples:
+```bash
+# Force localhost mode even if NGROK_URL is set
+./passkey-backend -localhost
+
+# Use environment configuration (default)
+./passkey-backend
+
+# With environment variable
+NGROK_URL=https://abc123.ngrok.io ./passkey-backend
+```
 
 ### First Run
 

@@ -273,7 +273,7 @@ struct CrossPlatformInfoCard: View {
                 )
                 InfoBullet(
                     icon: "globe",
-                    text: "Use the same passkeys on the web at https://passkey-demo.local:5173"
+                    text: "Use the same passkeys on the web at \(getCurrentWebURL())"
                 )
                 InfoBullet(
                     icon: "androidlogo",
@@ -299,6 +299,15 @@ struct CrossPlatformInfoCard: View {
         .padding()
         .background(Color.blue.opacity(0.1))
         .cornerRadius(12)
+    }
+    
+    private func getCurrentWebURL() -> String {
+        // Get the current ngrok URL from APIConfiguration
+        if let ngrokURL = APIConfiguration.ngrokURL {
+            return ngrokURL
+        } else {
+            return "http://localhost:8080"
+        }
     }
 }
 

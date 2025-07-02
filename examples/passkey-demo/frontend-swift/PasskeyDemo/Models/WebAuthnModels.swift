@@ -134,15 +134,44 @@ struct UserPasskey: Codable, Identifiable {
 }
 
 struct AuthenticationResult: Codable {
-    let success: Bool
-    let username: String?
-    let message: String?
+    let message: String
+    let data: AuthenticationData?
+    
+    // Computed property for compatibility
+    var success: Bool {
+        return data != nil
+    }
+    
+    var username: String? {
+        return data?.username
+    }
+}
+
+struct AuthenticationData: Codable {
+    let username: String
+    let displayName: String
+    let userId: String
 }
 
 struct RegistrationResult: Codable {
-    let success: Bool
-    let username: String?
-    let message: String?
+    let message: String
+    let data: RegistrationData?
+    
+    // Computed property for compatibility
+    var success: Bool {
+        return data != nil
+    }
+    
+    var username: String? {
+        return data?.username
+    }
+}
+
+struct RegistrationData: Codable {
+    let credentialId: String
+    let username: String
+    let displayName: String
+    let userId: String
 }
 
 // MARK: - Error Models

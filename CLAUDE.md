@@ -184,58 +184,69 @@ All Claude-generated files are organized in the `.claude/` directory to keep the
 The passkey demo in `/examples/passkey-demo/` supports two distinct development modes:
 
 ### Local Development Mode (localhost)
-Use this mode for:
-- Rapid web-only development
-- Quick iteration without building React
-- Testing backend changes
-- Single-platform development
+**⚠️ WEB FRONTEND ONLY - DO NOT USE FOR SWIFT FRONTEND**
+
+Use this mode ONLY for:
+- Web frontend development (React)
+- Backend API testing with curl/Postman
+- Quick backend iteration
 
 ```bash
 # Backend uses RPID: localhost
 cd examples/passkey-demo/backend
-go run .
+./passkey-backend -localhost
 
 # Access React dev server
 # http://localhost:5173
 ```
 
-**Characteristics:**
-- RPID is set to "localhost"
-- React dev server with hot reload
+**Limitations:**
+- **NEVER works with Swift frontend** - iOS requires proper FQDN for associated domains
 - No cross-platform passkey sharing
-- Fast iteration cycle
+- Web browser only
 
-### Cross-Platform Mode (ngrok)
+### Cross-Platform Mode (ngrok) - REQUIRED FOR SWIFT FRONTEND
+**✅ MANDATORY for Swift/iOS development**
+
 Use this mode for:
-- Testing passkey sharing across platforms
+- **ANY Swift frontend testing** (required)
 - iOS/Android app development
+- Cross-platform passkey sharing
 - Production-like testing
-- Real device testing
 
 ```bash
 # 1. Start ngrok tunnel
 ./scripts/start-ngrok.sh
 
-# 2. Build React for production
+# 2. Build React for production (if needed)
 cd frontend-react && npm run build
 
 # 3. Backend uses RPID: your-tunnel.ngrok.io
 cd ../backend
-source ../.env && go run .
+source ../.env && ./passkey-backend
 
 # Access via ngrok URL
 # https://your-tunnel.ngrok.io
 ```
 
-**Characteristics:**
-- RPID matches ngrok domain
-- React served as static files by Go
-- Passkeys work across web/iOS/Android
-- Requires accessing via ngrok URL
+**Critical for iOS:**
+- RPID matches ngrok domain (proper FQDN)
+- Associated domains work with real domain
+- AASA file served from proper domain
+- Required for passkey authentication to work
+
+### Swift Frontend Development Rules
+
+**🚨 NEVER use localhost mode for Swift frontend development**
+
+1. **Always use ngrok mode** for any Swift frontend work
+2. **Test on real iOS device** when possible (not simulator)
+3. **Ensure AASA file is accessible** via ngrok URL
+4. **Check entitlements are embedded** in built app
 
 ### Important WebAuthn Security Rule
 WebAuthn requires the browser origin to match the RPID domain:
-- If RPID="localhost", must access via http://localhost:*
-- If RPID="abc.ngrok.io", must access via https://abc.ngrok.io
+- If RPID="localhost", must access via http://localhost:* (web only)
+- If RPID="abc.ngrok.io", must access via https://abc.ngrok.io (required for iOS)
 
-This is a security feature, not a limitation. See `/examples/passkey-demo/WEBAUTHN-RPID-GUIDE.md` for details.
+**For iOS development: RPID must ALWAYS be a proper FQDN (ngrok domain), never localhost.**
