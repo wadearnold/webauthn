@@ -79,6 +79,24 @@ body {
   border-color: #667eea;
 }
 
+/* iOS Safari: Prevent auto-capitalization and correction for username inputs */
+input[autocomplete="username"],
+input#username,
+input#loginUsername {
+  /* Prevent iOS auto-capitalization */
+  -webkit-text-size-adjust: 100%;
+  -webkit-appearance: none;
+  text-transform: none;
+}
+
+/* Global CSS fallback for iOS Safari input behavior */
+@supports (-webkit-touch-callout: none) {
+  input[type="text"][autocomplete="username"] {
+    text-transform: none !important;
+    -webkit-text-size-adjust: 100% !important;
+  }
+}
+
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;

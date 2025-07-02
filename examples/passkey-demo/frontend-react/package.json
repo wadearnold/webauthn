@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "./start-dev.sh",
     "dev:direct": "vite",
+    "dev:localhost": "./start-localhost.sh",
     "build": "vite build",
     "build:ngrok": "./build-with-ngrok.sh",
     "preview": "vite preview"

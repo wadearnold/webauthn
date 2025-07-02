@@ -144,6 +144,11 @@ export default function RegisterForm({ onSuccess }) {
             disabled={loading}
             pattern="[a-zA-Z0-9.\\_\\-]{3,30}"
             title="Username must be 3-30 characters and contain only letters, numbers, dots, hyphens, and underscores"
+            // iOS-specific attributes to prevent auto-capitalization and correction
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+            inputMode="text"
             style={{
               borderColor: usernameError ? '#dc3545' : (username && !usernameError ? '#28a745' : '#e1e5e9')
             }}
